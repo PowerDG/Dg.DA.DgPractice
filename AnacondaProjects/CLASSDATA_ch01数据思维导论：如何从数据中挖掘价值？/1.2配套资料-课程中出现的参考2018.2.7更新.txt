@@ -1,0 +1,136 @@
+《数据分析师python》微专业配套资料——城市数据团课程1.2
+中国出生率数据：
+国家数据网：
+http://data.stats.gov.cn/easyquery.htm?cn=C01&zb=A0302&sj=2016
+
+工具库网站：
+python官网
+https://www.python.org/
+pandas官网
+http://pandas.pydata.org/
+numpy官网
+http://www.numpy.org/
+matplotlib官网
+https://matplotlib.org/
+geoplotlib官网和文档
+https://github.com/andrea-cuttone/geoplotlib
+https://github.com/andrea-cuttone/geoplotlib/wiki/User-Guide
+https://www.semanticscholar.org/paper/Geoplotlib-a-Python-Toolbox-for-Visualizing-Geogra-Cuttone-Lehmann/b0c22b778cf65b4ae043b753ceeaec1f2517ad8c
+bokeh官网
+https://bokeh.pydata.org/en/latest/
+seaborn官网
+http://seaborn.pydata.org/
+
+
+有趣的案例
+公路商店关于Reddit的文章
+https://mp.weixin.qq.com/s/-o18MEUPxJqHouEd-OxVlw
+《数据之美》中提到的案例：
+Aaron Parecki：从2008年开始记录自己的gps行程
+https://aaronparecki.com/2012/03/06/7/everywhere-ive-been-gps-data-portraits
+Tim Clark,用兴趣记录自己的行程
+ http://www.tlclark.com/atlasofthehabitual/
+Annual Report about oneself：Nicholas Felton
+https://www.skillshare.com/site/join?teacherRef=8606490&via=teacher-referral&utm_campaign=teacher-referral&utm_source=ShortUrl&utm_medium=teacher-referral&t=Designing-Data-Visualizations-Getting-Started-with-Processing&sku=1063775924
+强烈推荐：3blue1brown数学教程
+https://space.bilibili.com/88461692?from=search&seid=2041065308167205854#/channel/detail?cid=9450
+大神使用的库manim，基于py2.7
+https://github.com/3b1b/manim
+b站上研究大神的库的中文解释
+https://www.bilibili.com/read/cv19963
+
+数据可视化kantar奖官网，内含很多优秀的数据可视化案例：
+https://www.informationisbeautifulawards.com/
+
+知乎大神chenqin回答：
+www.zhihu.com/question/39643386
+上海地铁进站流量图 http://assets.dtcj.com/visualization/metro/metro_in_a_day.html?from=message&isappinstalled=0
+
+
+hiveplot相关网站：
+官网：http://www.hiveplot.com/
+论文：https://academic.oup.com/bib/article/13/5/627/412507
+D3上关于hiveplot的js代码：https://bost.ocks.org/mike/hive/
+https://bost.ocks.org/mike/uberdata/
+
+课程中提到的城市数据团的文章
+《上海哪里的“营商环境”更好？》
+https://mp.weixin.qq.com/s/bjXfOHqseBAy8X1MRQT0Cw
+《ofo小黄车告诉你，哪些城市最能吸引大学生？》https://mp.weixin.qq.com/s/olbbbGtbOYXX80qDNRFB2A
+《钱都去了哪些城市？——资本也用脚投票》
+https://mp.weixin.qq.com/s/6mFsQ8LvT91rSDjkwL0YgA
+
+ppt里出现过的信息图表可视化案例
+网易
+2018年的新年计划是，完成2015年的计划
+http://data.163.com/17/1231/15/D70C8L0S000181IU.html
+不修条地铁，都不好意思叫自己大城市
+http://data.163.com/18/0114/00/D82PMOF5000181IU.html
+每十个中国奶奶，就有一个抑郁症
+http://data.163.com/17/1031/15/D2395BSC000181IU.html
+财新
+http://datanews.caixin.com/mobile/usim/
+http://datanews.caixin.com/mobile/yimin/
+
+反例：
+人的血管加起来，可以绕地球两圈半；
+http://data.163.com/17/0824/00/CSIJFK8M000181IU.html
+我们生活的世界，就像一个垃圾场
+http://data.163.com/17/0804/12/CR0CCFHL000181IU.html
+哪里有钱赚，哪里就有温州人
+http://news.sohu.com/s2016/shuzi-485/index.shtml
+
+信息图表/新闻可视化
+网易读数（轻量级读数新闻）
+http://data.163.com/special/datablog/
+
+澎湃美数课（设计很好，还有动图和视频）
+http://www.thepaper.cn/list_25635
+
+数据新闻网（收集大量主流媒体的可视化作品，并且有工具库分享，可以当导航网工具网学习网）
+http://djchina.org/
+
+财新数字说
+http://datanews.caixin.com/
+财新数据可视化实验室信息图
+http://vislab.caixin.com/?cat=3
+
+新浪图解天下
+http://roll.news.sina.com.cn/chart/index.shtml
+
+搜狐 数字之道（排版明确，案例列表）
+http://news.sohu.com/matrix/
+
+腾讯 数据控（目前不是很多）
+http://news.qq.com/bigdata/
+
+新华数据新闻（新闻比较正，官方中的官方，两会新闻很多，内容偏简单）
+http://www.xinhuanet.com/datanews/index.htm
+同样还有  人民网
+http://opinion.people.com.cn/GB/364827/
+
+DT财经（原创的数据报告列表，目前不是很多，注重H5页面）
+http://www.dtcj.com/
+
+视物 致知（高端的数据可视化）
+http://www.vizinsight.com/category/awesome-infographics/%E6%95%A3%E7%82%B9%E5%9B%BE/
+
+
+
+低调分享科学上网：
+s_hadow-socks需付费
+链接：https://pan.baidu.com/s/1jJMAGT4 密码：bwt3
+教程：
+https://fanach.github.io/post/ss-windows/
+账号教程
+https://github.com/Shadowsocks-Wiki/shadowsocks/blob/master/1-buy-shadowsocks.md
+官网（翻了墙才能进）：https://shadowsocks.org/en/index.html
+
+
+蓝_火丁
+Github：https://github.com/getlantern/forum/
+
+免费（可当做入口vpn去下载别的vpn 也可直接用，免费的不好用是正常的哦）：
+赛 风：链接：https://pan.baidu.com/s/1smCncG9 密码：1yay
+
+
