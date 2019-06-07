@@ -28,7 +28,7 @@ Pandas 可以说是基于 NumPy 构建的含有更高级数据结构和分析能
 
 **Series 是个定长的字典序列**。说是定长是因为在存储的时候，相当于两个 ndarray，这也是和字典结构最大的不同。因为在字典的结构里，元素的个数是不固定的。
 
-**Series**有两个基本属性：index 和 values。在 Series 结构中，index 默认是 0,1,2,……递增的整数序列，当然我们也可以自己来指定索引，比如 index=[‘a’, ‘b’, ‘c’, ‘d’]。
+**Series**有两个基本属性：index 和 values。在 Series 结构中，***index 默认是 0,1,2,……递增的整数序列***，当然我们也可以***自己来指定索引，比如 index=[‘a’, ‘b’, ‘c’, ‘d’]***。
 
 ```
 
@@ -74,7 +74,7 @@ dtype: int64
 
 ```
 
-这个例子中，x1 中的 index 采用的是默认值，x2 中 index 进行了指定。我们也可以采用字典的方式来创建 Series，比如：
+这个例子中，x1 中的 index 采用的是默认值，x2 中 index 进行了指定。我们也可以**采用字典的方式来创建 Series**，比如：
 
 ```
 
@@ -188,7 +188,7 @@ df2 = DataFrame(data, index=['ZhangFei', 'GuanYu', 'ZhaoYun', 'HuangZhong', 'Dia
 
 **在数据清洗过程中，一般都会遇到以下这几种情况，下面我来简单介绍一下。**
 
-**1. 删除 DataFrame 中的不必要的列或行**
+### 	1. 删除 DataFrame 中的不必要的列或行**
 
 Pandas 提供了一个便捷的方法 drop() 函数来删除我们不想要的列或行。比如我们想把“语文”这列删掉。
 
@@ -208,7 +208,7 @@ df2 = df2.drop(index=['ZhangFei'])
 
 ```
 
-**2. 重命名列名 columns，让列表名更容易识别**
+### 	**2. 重命名列名 columns，让列表名更容易识别**
 
 如果你想对 DataFrame 中的 columns 进行重命名，可以直接使用 rename(columns=new_names, inplace=True) 函数，比如我把列名 Chinese 改成 YuWen，English 改成 YingYu。
 
@@ -219,7 +219,7 @@ df2.rename(columns={'Chinese': 'YuWen', 'English': 'Yingyu'}, inplace = True)
 
 ```
 
-**3. 去重复的值**
+### 	**3. 去重复的值**
 
 数据采集可能存在重复的行，这时只要使用 drop_duplicates() 就会自动把重复的行去掉。
 
@@ -230,7 +230,7 @@ df = df.drop_duplicates() # 去除重复行
 
 ```
 
-**4. 格式问题**
+### 	**4. 格式问题**
 
 **更改数据格式**
 
@@ -309,11 +309,11 @@ df2.columns = df2.columns.str.title()
 
 ![img](assets/89cb71afc4f54a11ce1d4d05cd46bb03.png)
 
-## 使用 apply 函数对数据进行清洗
+## 使用【 apply 】函数对数据进行清洗
 
 apply 函数是 Pandas 中**自由度非常高的函数**，使用频率也非常高。
 
-比如我们想对 name 列的数值都进行大写转化可以用：
+比如我们想对 name 列的**数值str.upper都进行大写转化**可以用：
 
 ```
 
@@ -322,7 +322,7 @@ df['name'] = df['name'].apply(str.upper)
 
 ```
 
-我们也可以定义个函数，在 apply 中进行使用。比如定义 double_df 函数是将原来的数值 *2 进行返回。然后对 df1 中的“语文”列的数值进行 *2 处理，可以写成：
+我们也可以定义个函数，在 apply 中进行使用。比如定义 double_df 函数是将原来的数值 *2 进行返回。然后对 df1 中的**“语文”列的数值进行 *2** 处理，可以写成：
 
 ```
 
@@ -352,9 +352,13 @@ df1 = df1.apply(plus,axis=1,args=(2,3,))
 
 ```
 
-其中 axis=1 代表按照列为轴进行操作，axis=0 代表按照行为轴进行操作，args 是传递的两个参数，即 n=2, m=3，在 plus 函数中使用到了 n 和 m，从而生成新的 df。
+其中 axis=1 代表按照列为轴进行操作，axis=0 代表按照行为轴进行操作，
 
-## 数据统计
+***args 是传递的两个参数，即 n=2, m=3***，在 plus 函数中使用到了 n 和 m，从而生成新的 df。
+
+
+
+## 【数据统计】
 
 在数据清洗后，我们就要对数据进行统计了。
 
@@ -364,15 +368,15 @@ Pandas 和 NumPy 一样，都有常用的统计函数，如果遇到空值 NaN�
 
 ![img](assets/343ba98c1322dc0c013e07c87b157a00.jpg)
 
+
+
 表格中有一个 describe() 函数，统计函数千千万，describe() 函数最简便。它是个统计大礼包，可以快速让我们对数据有个全面的了解。下面我直接使用 df1.descirbe() 输出结果为：
 
 ```
 
-df1 = DataFrame({'name':['ZhangFei', 'GuanYu', 'a', 'b', 'c'], 'data1':range(5)})
-
+df1 = DataFrame({'name':['ZhangFei', 'GuanYu', 'a', 'b', 'c']
+			, 'data1':range(5)})
 print df1.describe()
-
-
 ```
 
 ![img](assets/e4a7a208a11d60dbcda6f3dbaff9a583.png)
@@ -394,20 +398,17 @@ df2 = DataFrame({'name':['ZhangFei', 'GuanYu', 'A', 'B', 'C'], 'data2':range(5)}
 
 两个 DataFrame 数据表的合并使用的是 merge() 函数，有下面 5 种形式：
 
-**1. 基于指定列进行连接**
+###		**1. 基于指定列进行连接**
 
 比如我们可以基于 name 这列进行连接。
 
 ```
-
 df3 = pd.merge(df1, df2, on='name')
-
-
 ```
 
 ![img](assets/220ce1ea19c8f6f2668d3a8122989c2f.png)
 
-**2. inner 内连接**
+###		**2. inner 内连接**
 
 inner 内链接是 merge 合并的默认情况，inner 内连接其实也就是键的交集，在这里 df1, df2 相同的键是 name，所以是基于 name 字段做的连接：
 
@@ -420,7 +421,7 @@ df3 = pd.merge(df1, df2, how='inner')
 
 ![img](https://static001.geekbang.org/resource/image/22/2f/220ce1ea19c8f6f2668d3a8122989c2f.png)
 
-**3. left 左连接**
+###		**3. left 左连接**
 
 左连接是以第一个 DataFrame 为主进行的连接，第二个 DataFrame 作为补充。
 
@@ -433,7 +434,7 @@ df3 = pd.merge(df1, df2, how='left')
 
 ![img](assets/9091a7406d5aa7a2980328d587fb42ac.png)
 
-**4. right 右连接**
+###		**4. right 右连接**
 
 右连接是以第二个 DataFrame 为主进行的连接，第一个 DataFrame 作为补充。
 
@@ -446,7 +447,7 @@ df3 = pd.merge(df1, df2, how='right')
 
 ![img](assets/10f9f22f66f3745381d85d760f857baf.png)
 
-**5. outer 外连接**
+###		**5. outer 外连接**
 
 外连接相当于求两个 DataFrame 的并集。
 
@@ -465,7 +466,7 @@ Pandas  的 DataFrame 数据类型可以让我们像处理数据表一样进行�
 
 事实上，在 Python 里可以直接使用 SQL 语句来操作 Pandas。
 
-这里给你介绍个工具：pandasql。
+###		这里给你介绍个工具：pandasql。
 
 pandasql 中的主要函数是 sqldf，它接收两个参数：一个 SQL 查询语句，还有一组环境变量 globals() 或 locals()。这样我们就可以在 Python 里，直接用 SQL 语句中对 DataFrame 进行操作，举个例子：
 
