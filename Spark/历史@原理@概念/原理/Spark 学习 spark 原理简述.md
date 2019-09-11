@@ -290,3 +290,8 @@ rdd3.count()
 10. [Apache Spark Jobs 性能调优（一）](https://link.zhihu.com/?target=https%3A//www.zybuluo.com/xiaop1987/note/76737) [↩](https://link.zhihu.com/?target=http%3A//blog.csdn.net/databatman/article/details/53023818%23fnref%3Ademoa)
 11. [Apache Spark Jobs 性能调优（一）](https://link.zhihu.com/?target=https%3A//www.zybuluo.com/xiaop1987/note/76737) [↩](https://link.zhihu.com/?target=http%3A//blog.csdn.net/databatman/article/details/53023818%23fnref%3Ademoa)
 12. [Spark性能优化指南——基础篇](https://link.zhihu.com/?target=http%3A//tech.meituan.com/spark-tuning-basic.html) [↩](https://link.zhihu.com/?target=http%3A//blog.csdn.net/databatman/article/details/53023818%23fnref%3Ademo_meituan)
+
+
+
+![1568127810053](1568127810053.png)
+
