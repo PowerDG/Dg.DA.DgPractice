@@ -154,9 +154,9 @@ public class InvoiceService {
 
 正如代码中解释的那样，虽然使用DI比将事务代码硬编码到每个方法更好，而且事务管理是松耦合的，但是`InvoiceService`中的代码仍然是缠绕的：因为**`_transaction.Start()和 _transaction.Commit()`仍然存在该服务中。**这种方法会使得单元测试更加棘手，因为依赖越多，需要使用的伪造（stubs/fakes）越多。
 
-如果熟悉DI，相信你也应该熟悉**装饰者模式**。假设`InvoiceService`类有个接口`IInvoiceService`，那么我们就可以定义一个装饰者来处理所有的事务，它也实现了`IInvoiceService`，这样就可以通过构造函数传入一个真实的`InvoiceService`依赖了，代码如下：
+如果熟悉DI，相信你也应该熟悉**装饰者模式**。假设`InvoiceService`类有个接口`IInvoiceService`，那么我们就可以**定义一个装饰者来处理所有的事务**，它也实现了`IInvoiceService`，这样就可以通过构造函数传入一个真实的`InvoiceService`依赖了，代码如下：
 
-```
+```csharp
 public class TransactionDecorator : IInvoiceData //装饰者实现了相同的接口
 {
     IInvoiceData _realService;
@@ -182,9 +182,9 @@ public class TransactionDecorator : IInvoiceData //装饰者实现了相同的�
 
 但是思考一下这种方法的缺点，尤其是随着项目的成长，诸如logging或事物管理的横切关注点可能会应用在不同的类中，有了这个装饰者，只能让`InvoiceService`这一个类简洁一些，如果有其他的类，就需要为其他的类写装饰者。如果有1000个这样的服务类呢，你要写1000个装饰者吗？累死你！考虑一下这样重复了多少！
 
-某些时候，如果要定义3到100个装饰者（多少取决于你），那么就可以抛弃装饰者而转向使用一个切面了。切面跟装饰者很相似，但是使用AOP工具会使得切面更具有通用目的。下面来写一个切面类，然后使用特性指明切面应该使用的地方，如下：
+某些时候，如果要定义3到100个装饰者（多少取决于你），那么就可以抛弃装饰者而转向使用一个切面了。**切面跟装饰者很相似**，但是使用AOP工具会使得切面更具有通用目的。下面来写一个切面类，然后使用特性指明切面应该使用的地方，如下：
 
-```
+```csharp
 public class InvoiceService
  {
     IInvoiceData _invoicedb;
@@ -192,8 +192,6 @@ public class InvoiceService
     {
         _invoicedb = invoicedb;
     }
-
-
     [TransactionAspect]
     void CreateInvoice( ShoppingCart cart )//CreateInvoice方法不包含任何事务代码
     {
@@ -208,14 +206,10 @@ public class TransactionAspect {
     {
         _transaction = transaction;
     }
-
-
     void OnEntry()
     {
         _transaction.Start();//事务Start移到了切面的OnEntry方法中
     }
-
-
     void OnSuccess()
     {
         _transaction.Commit();
@@ -248,7 +242,7 @@ public class AddressBookService
 
 虽然上面的代码阅读和维护都相当简单，但是它做了两件事：一是检查传入的name是否是有效的；二是基于传入的name找到电话号码。虽然检查参数的有效性和服务方法相关，但是它仍然是可以分离和复用的辅助功能。下面是使用AOP重构之后的伪代码：
 
-```
+```csharp
 public class AddressBookService
 {
     [CheckForNullArgumentsAspect]
@@ -266,12 +260,12 @@ public class CheckForNullArgumentsAspect
             if ( arg is null )
                 throw ArgumentException( arg.name )
     }
-} 
+} c
 ```
 
-这个例子中的`OnEntry`方法多了个`MethodInformation`参数，它提供了一些关于方法的信息，为的是可以检测方法的参数是否为null。虽然这个方法微不足道，但是`CheckForNullArgumentsAspect`代码可以复用到确保参数有效的其他方法上。
+这个例子中的`OnEntry`方法多了个`MethodInformation`参数，它提供了一些关于方法的信息，为的是可以检测方法的参数是否为null。虽然这个方法微不足道，但是`CheckForNullArgumentsAspect`代码可以**复用到确保参数有效的其他方法上**。
 
-```
+```csharp
 public class AddressBookService
 {
     [CheckForNullArgumentAspect]
@@ -287,8 +281,6 @@ public class InvoiceService
     {
         ...
     }
-
-
     [CheckForNullArgumentAspect]
     public void CreateInvoice( ShoppingCart cart )
     {
@@ -305,7 +297,7 @@ public class PaymentSevice
 }
 ```
 
-这样一来，如果我们想要修改和Invoice相关的东西，只需要修改`InvoiceService`。如果想要修改和null检测相关的一些事情，只需要修改`CheckForNullArgumentAspect`。涉及到的每个类只有一个原因修改。现在我们就不太可能因为修改造成bug或倒退。
+这样一来，如果我们想要修改和Invoice相关的东西，只需要修改`InvoiceService`。如果想要修改和null检测相关的一些事情，只需要修改`CheckForNullArgumentAspect`。涉及到的每个类只有一个原因修改。现在我们就不太可能1因为修改造成bug或倒退。
 
 #### AOP就在你的日常开发中
 
@@ -318,7 +310,7 @@ public class PaymentSevice
 
 ASP.NET有一个可以实现和在web.config中安装的IHttpModule。完成之后，对于web应用的每个页面请求的每个模块都会运行。在IHttpModule实现的内部，可以定义运行在请求开始时或请求结束时（分别是BeginRequest和EndRequest）的事件处理程序，然后，再创建一个**边界（boundary）**切面：运行在页面请求边界的代码。
 
-如果使用了现成的forms认证，那么上面的这些已经默认实现了，ASP.NET Forms认证内部使用了`Forms-AuthenticationModule`,它本身就是`IHttpModule`的实现。不需要在每个页面上使用代码检测认证，只需要巧妙地使用这个模块封装认证即可。如果认证更改了，只需要修改配置，而不是每个页面。这样，即使添加一个新页面，也不会担心忘记给它添加认证。
+如果使用了现成的forms认证，那么上面的这些已经默认实现了，ASP.NET Forms认证内部使用了`Forms-AuthenticationModule`,它本身就是`IHttpModule`的实现。不需要在每个页面上使用代码检测认证，只需要**巧妙地使用这个模块封装认证即可**。如果认证更改了，只需要修改配置，而不是每个页面。这样，即使添加一个新页面，也不会担心忘记给它添加认证。
 
 ![图片](4924113b-24bb-490c-b909-1bb53ffb4961.png)
 
