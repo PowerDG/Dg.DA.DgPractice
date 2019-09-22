@@ -833,7 +833,7 @@ public class LoyaltyAccrualService:ILoyaltyAccrualService
 
 现在就可以从这些方法中移除logging代码了。除此之外，我们还没有打印传入参数的Id，比如`Customer.Id`。有了Postsharp,我们可以取到所有的传入参数，但为了取到Id,必须还得做点事情。
 
-```
+```csharp
 public override void OnEntry(MethodExecutionArgs args)
 {
     Console.WriteLine("{0}:{1}",args.Method.Name,DateTime.Now);
@@ -854,7 +854,7 @@ public override void OnEntry(MethodExecutionArgs args)
 
 就这个例子来说，这样没问题了，但是对于一个大一点的应用，可能会有几十个甚至几百个不同的类型，如果需求是记录实体Id和信息，那么可以在实体上使用一个公共接口（或基类）。比如，如果`Invoice`和`RentalAgreement`都实现了`ILoggable`接口，该接口具有一个方法`string LogInfo()`,代码可以这样写:
 
-```
+```csharp
  public override void OnEntry(MethodExecutionArgs args)
         {
             Console.WriteLine("{0}:{1}",args.Method.Name,DateTime.Now);
@@ -878,7 +878,7 @@ public override void OnEntry(MethodExecutionArgs args)
 
 下面还是使用`OnMethodBoundaryAspect`基类重构防御性编程，确保没有参数为null，以及所有的int参数不为0或负数：
 
-```
+```csharp
  [Serializable]
  public class DefensiveProgramming:OnMethodBoundaryAspect
  {
@@ -905,7 +905,7 @@ public override void OnEntry(MethodExecutionArgs args)
 
 同时，这个类没有直接耦合任何参数类型或服务类，这意味着可以重复使用在多个服务中。
 
-```
+```csharp
 [LoggingAspect]
 [DefensiveProgramming]
 public void Accrue(RentalAgreement agreement)
@@ -932,7 +932,7 @@ public void Redeem(Invoice invoice, int numberOfDays)
 
 要重构事务管理代码，这次不使用`OnMethodBoundaryAspect`,而是使用`MethodInterceptionAspect`，它不是在方法的边界插入代码，而是会拦截任何该方法的调用。拦截切面会在拦截到方法调用时执行切面代码，之后再执行拦截到的方法；而边界切面会在方法执行前后运行切面代码。
 
-```
+```csharp
  [Serializable]
  public class TransactionManagement : MethodInterceptionAspect
  {
@@ -966,7 +966,7 @@ public void Redeem(Invoice invoice, int numberOfDays)
 
 这个切面例子的代码和业务逻辑中的代码基本一样，除了使用`args.Proceed()`方法替换了业务逻辑代码。`Proceed()`方法意思就是继续执行拦截到的方法。通过上面的代码，我们的代码又简化了，下面记得给服务方法添加特性,并将业务代码从事务中移除：
 
-```
+```csharp
  [LoggingAspect]
  [DefensiveProgramming]
  [TransactionManagement]
@@ -990,7 +990,7 @@ public void Redeem(Invoice invoice, int numberOfDays)
 
 异常处理切面需要使用`OnMethodBoundaryAspect`，或者可以使用`OnExceptionAspect`，无论使用哪一种，样子都是差不多的。
 
-```
+```csharp
  [Serializable]
  public class MyExceptionAspect:OnExceptionAspect
  {
@@ -1008,7 +1008,7 @@ public void Redeem(Invoice invoice, int numberOfDays)
 
 移除异常处理的代码，加上异常处理切面特性，至此，所有的横切关注点就重构完了。下面完整地看一下成品：
 
-```
+```csharp
  [LoggingAspect]
  [DefensiveProgramming]
  [TransactionManagement]
