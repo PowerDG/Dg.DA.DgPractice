@@ -1,0 +1,1066 @@
+
+
+
+
+
+
+
+
+# [AOP系列之构建一个汽车租赁应用](https://www.cnblogs.com/farb/p/AOPBuildACarRentApp.html)
+
+
+
+
+
+
+
+
+
+## 本篇目录
+
+- **开始一个新项目**
+- **没有AOP的生活**
+- **变更的代价**
+- **使用AOP重构**
+
+------
+
+本系列的源码本人已托管于Coding上：**点击查看**。
+
+本系列的实验环境：VS 2013 Update 5（建议最好使用集成了Nuget的VS版本，VS Express版也够用），安装了PostSharp。
+
+这篇博客覆盖的内容包括：
+
+- 为项目创建需求
+- 从零编写代码来满足需求
+- 不使用AOP重构凌乱的代码
+- 使用AOP来重构代码
+
+------
+
+这一节会构建一个汽车租赁系统，先是给定业务需求，然后逐渐地添加代码来满足那些需求。
+ 一开始不使用任何AOP，从零开始敲代码。业务需求是最重要的，因此我们先做需求，一旦满足了业务逻辑，然后再覆盖非功能需求。最后，尽可能地简化并重构代码，不使用AOP来重构横切关注点。
+ 这些都完成之后，就会转向一个应用生命周期的长尾阶段。软件很少是长期不变的：新的功能需求和新发现的bugs。很少有软件的开发阶段会比生产阶段长，这就意味着大多数软件的生命周期是维护阶段。一个维护困难或昂贵的应用会导致高代价或者低品质（或两者都有），最终形成一个大泥球。
+ 然后，会使用PostSharp重构代码，将各自的横切关注点分离到它们自己的类中。一旦重构完成，你就会看到使用AOP的好处，特别是添加更多功能时。
+
+## 开始一个新项目
+
+时间：现在
+ 地点：你公司（汽车租赁服务相关）的研发部的办公室
+ 人物：你的技术团队或者只有你自己
+ 背景：启动一个新的项目，高大上一点，叫做客户忠诚度系统，low一点，叫做客户积分程序。目的是为了增加销售，奖励那些经常购买服务的客户。比如，客户今天租赁了一辆车，那么他就会获得积分，积分累积多了之后，以后可以用于抵消一部分租赁费用或其他费用。
+
+假设有一个基本的三层架构，如下图。我们会从应用到这个积分系统的核心业务逻辑层着手编写代码，持久化层会跟踪客户的忠诚度积分，业务逻辑层供所有的UI层使用：网站，APP和店员使用的桌面端。
+
+![图片](a9e8f5b8-1115-45a9-8341-36c1f8fbd913.png)
+
+这一篇，我们主要看一下中间一层的业务逻辑层。我们可以假设持久化层已经实现了，还要假设一旦业务逻辑实现了，UI也就实现了。
+
+### 业务需求
+
+项目经理和利益相关人（比如销售和市场）确定了下图的业务需求，你已经确定了两个主要的需求集：**累积积分**和使用累积的积分 **兑换奖励**。
+
+![图片](67ba006a-3904-457e-9252-b660608ade6c.png)
+
+现在的业务需求就是：客户每租一天普通型车辆，累积一积分，豪华型或者大型车辆，每天两积分。这些积分会在他们支付之后并返还了车以后会增加到他们的账户中。一旦客户累积了10积分，那么就可以使用这些积分兑换奖励了，具体兑换规则见上图。
+ 这就是所有业务规则，但是在实现之前还是得和销售和市场确定好：因为他们将来肯定还会更改或者添加一些东西。
+
+### 必要的非功能需求
+
+在给项目经理估算时间和花销之前，你有自己必须要解决的技术关注点。
+ 第一，需要记录日志。如果客户的积分累积得不对（累积少了），那么他们会生气的，因此必须确保记录了业务逻辑处理的一切（尤其是起初阶段）。
+ 第二，因为业务逻辑代码会被多个UI应用使用，要确保传入业务层的数据是合法的，你的队友可能会在UI里写入一些集成代码，因此，必须编写防御性代码来检查无意义的边缘情况和参数。
+ 第三，还是因为业务逻辑代码会被多个UI应用使用，这些UI可能会使用不同类型的连接（缓慢的移动手机的连接，国外浏览器访问等等），你需要采用事务和重试逻辑来确保维护数据集成以及给用户提供一个愉快的体验。
+ 最后，总有意外会发生，你可能不知道此时你会使用何种类型的持久化，所以需要某种方法处理异常（很可能是记录日志）。
+
+## 没有AOP的生活
+
+将评估提交给项目经理之后，所有的批准和文件也已经签署了，现在就可以开始了。
+
+新建一个解决方案，名叫**CarRental**，并创建一个类库项目存放业务逻辑，取名*CarRental.Core*
+
+### 编写业务逻辑
+
+创建一个累积积分的接口，代码如下：
+
+```
+public interface ILoyaltyAccrualService
+{
+    void Accrue(RentalAgreement agreement);
+}
+```
+
+`RentalAgreement`是该积分系统领域公用的一个实体类，因此按理说它应该在一个不同的程序集，但这里为了演示，我创建了一个`Entities`的文件夹，存放所有的实体。
+
+```
+public class RentalAgreement
+{
+    public Guid Id { get; set; }
+    public Customer Customer { get; set; }
+    public Vehicle Vehicle { get; set; }
+    public DateTime StartDate { get; set; }
+    public DateTime EndDate { get; set; }
+}
+
+
+ public class Customer
+ {
+     public Guid Id { get; set; }
+     public string Name { get; set; }
+     public string DriversLicense { get; set; }
+     public DateTime DateOfBirth { get; set; }
+ }
+
+ public class Vehicle
+ {
+     public Guid Id { get; set; }
+     public string Make { get; set; }
+     public string Model { get; set; }
+     public Size Size { get; set; }
+     public string Vin { get; set; }
+ }
+
+ public enum Size
+ {
+     Compact=0,
+     Midsize,
+     FullSize,
+     Luxury,
+     Truck,
+     SUV
+ }
+```
+
+再回头看`ILoyaltyAccrualService`接口，该接口有一个使用了这些实体的`Accure`方法，用来为客户累积积分。下面是该接口的实现，它会依赖一个持久化数据的服务。`Accure`方法会包含了计算协议中天数和这些天共累积多少积分的业务逻辑，并将这些积分数量存储到数据库中。
+
+```
+public class LoyaltyAccrualService:ILoyaltyAccrualService
+{
+    private readonly ILoyaltyDataService _loyaltyDataService;
+
+    public LoyaltyAccrualService(ILoyaltyDataService loyaltyDataService)
+    {
+        _loyaltyDataService = loyaltyDataService;//数据服务必须在该对象初始化时传入该对象
+    }
+    /// <summary>
+    /// 该方法包含了积分系统累积客户积分的逻辑和规则
+    /// </summary>
+    /// <param name="agreement">租赁协议实体</param>
+    public void Accrue(RentalAgreement agreement)
+    {
+        var rentalTimeSpan = agreement.EndDate.Subtract(agreement.StartDate);
+        var numberOfDays = (int)rentalTimeSpan.TotalDays;
+        var pointsPerDay = 1;
+        if (agreement.Vehicle.Size >=Size.Luxury)
+        {
+            pointsPerDay = 2;
+        }
+        var points = numberOfDays*pointsPerDay;
+        //调用数据服务存储客户获得的积分
+        _loyaltyDataService.AddPoints(agreement.Customer.Id,points);
+    }
+}
+```
+
+`ILoyaltyDataService`只有两个方法：
+
+```
+ public interface ILoyaltyDataService
+ {
+     void AddPoints(Guid customerId,int points);
+     void SubstractPoints(Guid customerId, int points);
+ }
+```
+
+`ILoyaltyDataService`作为数据库接口，会通过DI的方式传入到业务层的构造函数。因为我们现在只集中在业务逻辑层，所以我们在数据服务层只是简单地打印一些东西就好了，`FakeLoyaltyDataService`实现了`ILoyaltyDataService`如下：
+
+```
+public class FakeLoyalDataService:ILoyaltyDataService
+{
+    public void AddPoints(Guid customerId, int points)
+    {
+        Console.WriteLine("客户{0}增加了{1}积分",customerId,points);
+    }
+
+    public void SubstractPoints(Guid customerId, int points)
+    {
+        Console.WriteLine("客户{0}减少了{1}积分", customerId, points);
+    }
+}
+```
+
+到这里，已经完成了累积积分的业务逻辑！现在回到客户关心的问题上，如何兑换积分？创建一个接口`ILoyaltyRedemptionService`：
+
+```
+ public interface ILoyaltyRedemptionService
+ {
+     void Redeem(Invoice invoice, int numberOfDays);
+ }
+
+ /// <summary>
+ /// 发票实体
+ /// </summary>
+ public class Invoice
+ {
+     public Guid Id { get; set; }
+     public Customer Customer { get; set; }
+     public Vehicle Vehicle { get; set; }
+     public int CostPerDay { get; set; }
+     public decimal Discount { get; set; }
+ }
+```
+
+兑换积分是基于客户租赁的车型和兑换的天数从客户的账户中减去积分，并填充发票中的折扣金额。代码如下：
+
+```
+ public class LoyalRedemptionService:ILoyaltyRedemptionService
+ {
+     private readonly ILoyaltyDataService _loyaltyDataService;
+
+     public LoyalRedemptionService(ILoyaltyDataService loyaltyDataService)
+     {
+         _loyaltyDataService = loyaltyDataService;
+     }
+
+     public void Redeem(Invoice invoice, int numberOfDays)
+     {
+         var pointsPerDay = 10;
+         if (invoice.Vehicle.Size>=Size.Luxury)
+         {
+             pointsPerDay = 15;
+         }
+         var totalPoints = pointsPerDay*numberOfDays;
+         invoice.Discount = numberOfDays*invoice.CostPerDay;
+         _loyaltyDataService.SubstractPoints(invoice.Customer.Id,totalPoints);
+     }
+ }
+```
+
+### 测试业务逻辑
+
+下面创建一个控制台UI模拟业务逻辑的使用：
+
+```
+ class Program
+ {
+     static void Main(string[] args)
+     {
+         SimulateAddingPoints();//模拟累积
+         Console.WriteLine("***************");
+         SimulateRemovingPoints();//模拟兑换
+         Console.Read();
+     }
+
+     /// <summary>
+     /// 模拟累积积分
+     /// </summary>
+     static void SimulateAddingPoints()
+        {
+            var dataService=new FakeLoyalDataService();//这里使用的数据库服务是伪造的
+            var service=new LoyaltyAccrualService(dataService);
+            var agreement=new RentalAgreement
+            {
+                Customer = new Customer
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "tkb至简",
+                    DateOfBirth = new DateTime(2000,1,1),
+                    DriversLicense = "123456"
+                },
+                Vehicle = new Vehicle
+                {
+                    Id = Guid.NewGuid(),
+                    Make = "Ford",
+                    Model = "金牛座",
+                    Size = Size.Compact,
+                    Vin = "浙-ABC123"
+                },
+                StartDate = DateTime.Now.AddDays(-3),
+                EndDate = DateTime.Now
+            };
+            service.Accrue(agreement);
+        }
+
+     /// <summary>
+     /// 模拟兑换积分
+     /// </summary>
+     static void SimulateRemovingPoints()
+        {
+            var dataService = new FakeLoyalDataService();
+            var service = new LoyalRedemptionService(dataService);
+            var invoice = new Invoice
+            {
+                Customer = new Customer
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "Farb",
+                    DateOfBirth = new DateTime(1999, 1, 1),
+                    DriversLicense = "abcdef"
+                },
+                Vehicle = new Vehicle
+                {
+                    Id = Guid.NewGuid(),
+                    Make = "奥迪",
+                    Model = "Q7",
+                    Size = Size.Compact,
+                    Vin = "浙-DEF123"
+                },
+                 CostPerDay = 100m,
+                 Id = Guid.NewGuid()
+            };
+            service.Redeem(invoice,3);//这里兑换3天
+        }
+ }
+```
+
+运行程序，伪造的数据服务会在控制台上打印一些东西，结果如下：
+
+![图片](22a2ea4d-2760-4e2e-b4c6-d11913c05437.png)
+
+现在，业务逻辑完成了，代码很干净，分离地也很好，很容易阅读和维护，但是这代码还不能进入生产环境，因为有各种各样可能会出错的事情发生，因此下面着手新功能的需求开发。
+
+### 添加日志
+
+虽然审计积分事务还不是一个需求，但是为了安全起见，最好还是记录每个请求，至少是为了QA（质量保证）的目的。在生产环境，可能会限制或减少日志，但是现在我们要放一些简单的日志帮助开发者重现QA找到的bugs。
+
+现在，当累积积分和兑换积分时，添加日志，其余代码和之前的一样。
+
+```
+  /// <summary>
+  /// 该方法包含了积分系统累积客户积分的逻辑和规则
+  /// </summary>
+  /// <param name="agreement">租赁协议实体</param>
+  public void Accrue(RentalAgreement agreement)
+  {
+
+      Console.WriteLine("Accrue:{0}",DateTime.Now);
+      Console.WriteLine("Customer:{0}",agreement.Customer.Id);
+      Console.WriteLine("Vehicle:{0}",agreement.Vehicle.Id);
+      var rentalTimeSpan = agreement.EndDate.Subtract(agreement.StartDate);
+      var numberOfDays = (int)rentalTimeSpan.TotalDays;
+      var pointsPerDay = 1;
+      if (agreement.Vehicle.Size >=Size.Luxury)
+      {
+          pointsPerDay = 2;
+      }
+      var points = numberOfDays*pointsPerDay;
+      //调用数据服务存储客户获得的积分
+      _loyaltyDataService.AddPoints(agreement.Customer.Id,points);
+      Console.WriteLine("Accrue Complete：{0}",DateTime.Now);
+  }
+
+public void Redeem(Invoice invoice, int numberOfDays)
+{
+    Console.WriteLine("Redeem:{0}",DateTime.Now);
+    Console.WriteLine("Invoice:{0}",invoice.Id);
+    var pointsPerDay = 10;
+    if (invoice.Vehicle.Size>=Size.Luxury)
+    {
+        pointsPerDay = 15;
+    }
+    var totalPoints = pointsPerDay*numberOfDays;
+    invoice.Discount = numberOfDays*invoice.CostPerDay;
+    _loyaltyDataService.SubstractPoints(invoice.Customer.Id,totalPoints);
+    Console.WriteLine("Redeem Complete:{0}",DateTime.Now);
+}
+```
+
+现在还不是很糟糕，只不过在每个实现中添加了几行代码而已。咱们继续往下走！
+
+### 防御性编程
+
+因为我们的业务逻辑没有对传入的参数进行控制，因此必须要检查一下是否是最坏的情景。比如，如果`Accrue`方法传入一个null会怎样？我们的业务逻辑不能处理这个，所以会抛异常，但我们希望它能调用我们的API处理这个异常，如果处理不了，就提醒UI开发者或QA发生了一些错误的东西。这种哲学就叫**防御性编程**，只是为了减少危险场景的风险。
+
+下面我们使用防御性编程检查传入参数为null的无效场景：
+
+```
+ public void Accrue(RentalAgreement agreement)
+ {
+     //防御性编程
+     if (agreement==null)
+     {
+         throw new Exception("agreement为null！");
+     }
+     //日志
+     Console.WriteLine("Accrue:{0}",DateTime.Now);
+     Console.WriteLine("Customer:{0}",agreement.Customer.Id);
+     Console.WriteLine("Vehicle:{0}",agreement.Vehicle.Id);
+     var rentalTimeSpan = agreement.EndDate.Subtract(agreement.StartDate);
+     var numberOfDays = (int)rentalTimeSpan.TotalDays;
+     var pointsPerDay = 1;
+     if (agreement.Vehicle.Size >=Size.Luxury)
+     {
+         pointsPerDay = 2;
+     }
+     var points = numberOfDays*pointsPerDay;
+     //调用数据服务存储客户获得的积分
+     _loyaltyDataService.AddPoints(agreement.Customer.Id,points);
+     Console.WriteLine("Accrue Complete：{0}",DateTime.Now);
+ }
+```
+
+我们也可以检查`RentalAgreement`的属性，但现在上面的就足够了。`Redeem`的实现也有相同的问题，`numberOfDays`参数的值不能小于1，`Invoice`参数也不能为null，因此也必须使用防御性编程：
+
+```
+ public void Redeem(Invoice invoice, int numberOfDays)
+ {
+     //防御性编程
+     if (invoice==null)
+     {
+         throw new Exception("invoice为null！");
+     }
+     if (numberOfDays<=0)
+     {
+         throw new Exception("numberOfDays不能小于1！");
+     }
+     //logging
+     Console.WriteLine("Redeem:{0}",DateTime.Now);
+     Console.WriteLine("Invoice:{0}",invoice.Id);
+     var pointsPerDay = 10;
+     if (invoice.Vehicle.Size>=Size.Luxury)
+     {
+         pointsPerDay = 15;
+     }
+     var totalPoints = pointsPerDay*numberOfDays;
+     invoice.Discount = numberOfDays*invoice.CostPerDay;
+     _loyaltyDataService.SubstractPoints(invoice.Customer.Id,totalPoints);
+     Console.WriteLine("Redeem Complete:{0}",DateTime.Now);
+ }
+```
+
+现在我们的代码开始变得具有防御性了，如果在核心逻辑的控制之外发生了错误，也不会影响到我们了。
+
+在添加了日志和防御性代码之后，`Accrue`和`Redeem`方法开始变得有点长了，也有点重复，但继续看一下事务和重试逻辑。
+
+### 使用事务和重试
+
+如果我们使用了不止一个数据层操作，为了使这些操作具有原子性，那么事务是必须的。也就是说，我们想要所有的数据层调用都成功（提交），要么都失败（回滚）。假设，我们可以将事务放到业务逻辑层。
+ 假设底层的数据层会使用和.NET内置的事务类`TransactionScope`兼容的技术，结合`try/catch`块，我们可以给`Accrue`方法添加事务代码：
+
+```
+ public void Accrue(RentalAgreement agreement)
+ {
+     //防御性编程
+     if (agreement==null)
+     {
+         throw new Exception("agreement为null！");
+     }
+     //日志
+     Console.WriteLine("Accrue:{0}",DateTime.Now);
+     Console.WriteLine("Customer:{0}",agreement.Customer.Id);
+     Console.WriteLine("Vehicle:{0}",agreement.Vehicle.Id);
+     using (var ts=new TransactionScope())//开始一个新事务
+     {
+         try
+         {
+             var rentalTimeSpan = agreement.EndDate.Subtract(agreement.StartDate);
+             var numberOfDays = (int)rentalTimeSpan.TotalDays;
+             var pointsPerDay = 1;
+             if (agreement.Vehicle.Size >= Size.Luxury)
+             {
+                 pointsPerDay = 2;
+             }
+             var points = numberOfDays * pointsPerDay;
+             //调用数据服务存储客户获得的积分
+             _loyaltyDataService.AddPoints(agreement.Customer.Id, points);
+             ts.Complete();//调用Complete方法表明事务成功提交
+         }
+         catch (Exception ex)
+         {
+             throw;//没有调用Complete方法，事务会回滚
+         }
+     }
+     Console.WriteLine("Accrue Complete：{0}",DateTime.Now);
+ }
+```
+
+记住，只有调用了事务的`Complete`方法，事务才会提交，否则就会回滚。如果抛出了异常，这里我们只是重新抛出，相似地，也可以在`Redeem`方法中使用`TransactionScope`,这里不再贴了，请自行看源码。
+
+上面的代码开始变长、变丑了，原始的业务逻辑代码周围包了很多和横切关注点有关的代码块：logging，防御性编程和事务代码。
+
+但是我们还没做完，假设底层的数据持久层偶尔会出现高流量，可能就会导致某些请求失败（比如，抛出超时异常）。如果是那种情况，执行几次重试会保持程序平滑运行（尽管在高流量期间有点慢）。通过在事务中放一个循环，每次事务回滚时，我们就增加重试次数，一旦重试次数达到限制值，我们就不管了，如下：
+
+```
+public void Accrue(RentalAgreement agreement)
+{
+    //防御性编程
+    if (agreement==null)
+    {
+        throw new Exception("agreement为null！");
+    }
+    //日志
+    Console.WriteLine("Accrue:{0}",DateTime.Now);
+    Console.WriteLine("Customer:{0}",agreement.Customer.Id);
+    Console.WriteLine("Vehicle:{0}",agreement.Vehicle.Id);
+    using (var ts=new TransactionScope())//开始一个新事务
+    {
+        var retries = 3;//重试事务3次
+        var succeeded = false;
+        while (!succeeded)//一直循环，直到成功
+        {
+            try
+            {
+                var rentalTimeSpan = agreement.EndDate.Subtract(agreement.StartDate);
+                var numberOfDays = (int)rentalTimeSpan.TotalDays;
+                var pointsPerDay = 1;
+                if (agreement.Vehicle.Size >= Size.Luxury)
+                {
+                    pointsPerDay = 2;
+                }
+                var points = numberOfDays * pointsPerDay;
+                //调用数据服务存储客户获得的积分
+                _loyaltyDataService.AddPoints(agreement.Customer.Id, points);
+                ts.Complete();//调用Complete方法表明事务成功提交
+                succeeded = true;//成功后设置为true，确保最后一次循环迭代
+                Console.WriteLine("Accrue Complete：{0}", DateTime.Now);//这句移入try里
+            }
+            catch 
+            {
+                if (retries>=0)
+                {
+                    retries--;//直到尝试完次数时才重抛异常
+                }
+                else
+                {
+                    throw;//没有调用Complete方法，事务会回滚
+                }
+                
+            }
+        }
+    }
+  
+}
+```
+
+相似地，我们也要在`Redeem`方法中添加，这里不做了，省略。问题越来越明显了，横切关注点基本上占据了这个方法的一半代码。但是我们还没有做完，我们需要讨论一下异常处理。
+
+### 处理异常
+
+前面不是添加了`try/catch`了么?难道还不够？也许！比如，服务器离线了，重试次数到达限制了，异常还是会重抛出去，如果是这种情况，我们就需要在程序崩溃前处理这个异常。
+ 因此我们需要在防御性编程后再添加一个`try/catch`块包裹其他所有的代码，如下：
+
+```
+public void Accrue(RentalAgreement agreement)
+{
+    //防御性编程
+    if (agreement==null)
+    {
+        throw new Exception("agreement为null！");
+    }
+    //日志
+    Console.WriteLine("Accrue:{0}",DateTime.Now);
+    Console.WriteLine("Customer:{0}",agreement.Customer.Id);
+    Console.WriteLine("Vehicle:{0}",agreement.Vehicle.Id);
+    try
+    {
+        using (var ts = new TransactionScope())//开始一个新事务
+        {
+            var retries = 3;//重试事务3次
+            var succeeded = false;
+            while (!succeeded)//一直循环，直到成功
+            {
+                try
+                {
+                    var rentalTimeSpan = agreement.EndDate.Subtract(agreement.StartDate);
+                    var numberOfDays = (int)rentalTimeSpan.TotalDays;
+                    var pointsPerDay = 1;
+                    if (agreement.Vehicle.Size >= Size.Luxury)
+                    {
+                        pointsPerDay = 2;
+                    }
+                    var points = numberOfDays * pointsPerDay;
+                    //调用数据服务存储客户获得的积分
+                    _loyaltyDataService.AddPoints(agreement.Customer.Id, points);
+                    ts.Complete();//调用Complete方法表明事务成功提交
+                    succeeded = true;//成功后设置为true，确保最后一次循环迭代
+                    Console.WriteLine("Accrue Complete：{0}", DateTime.Now);//这句移入try里
+                }
+                catch
+                {
+                    if (retries >= 0)
+                    {
+                        retries--;//直到尝试完次数时才重抛异常
+                    }
+                    else
+                    {
+                        throw;//没有调用Complete方法，事务会回滚
+                    }
+
+                }
+            }
+        }
+
+    }
+    catch (Exception ex)
+    {
+        if (!ExceptionHelper.Handle(ex))//如果没有处理异常，继续重抛
+        {
+            throw ex;
+        }
+    }
+  
+}
+```
+
+`ExceptionHelper`是自定义的异常处理帮助类，覆盖了个别异常的处理，如果是没有覆盖的异常，我们可能需要记录日志，并告诉客户出现了什么异常。相似地，`Redeem`方法也要做相同的处理，此处省略。
+
+此时，我们已经实现了所有非功能需求：logging，防御性编程，事务，重试，和异常处理。将这些处理横切关注点的代码添加到原始的`Accrue`和`Redeem`方法中使得它们膨胀成巨大的方法。现在代码可以去生产环境（或更可能去QA/预发布环境），但是这代码太糟糕了！
+
+你可能在想这个描述有点过了，并不是所有的横切关注点都是必须的，是的，你可能大多数情况只需要一两个横切关注点，一些关注点可以移到数据层或UI层。**但这里要说明的道理是横切关注点可以使你的代码变杂乱，使得代码更难阅读、维护和调试**。
+
+### 不使用AOP重构
+
+是时候整理下代码了，因为`Accrue`和`Redeem`方法中有很多重复代码，我们可以把这些代码放到它们自己的类或方法中。一种选择是将所有的非功能关注点重构到静态方法中，这是个馊主意，因为这会将业务逻辑紧耦合到非功能关注点代码中，虽然使方法看上去更短更可读了，但仍然留下了方法做的事情太多的问题。你也可以使用DI策略，将所有的logging，防御性编程和其他服务传给`LoyaltyAccrualService`和`LoyaltyRedemptionService`的构造函数：
+
+```
+public class LoyalRedemptionServiceRefactored:ILoyaltyRedemptionService
+{
+    private readonly ILoyaltyDataService _loyaltyDataService;
+    private readonly IExceptionHandler _exceptionHandler;//异常处理接口
+    private readonly ITransactionManager _transactionManager;//事务管理者
+
+    public LoyalRedemptionServiceRefactored(ILoyaltyDataService loyaltyDataService, IExceptionHandler exceptionHandler, 
+        ITransactionManager transactionManager)
+    {
+        _loyaltyDataService = loyaltyDataService;
+        _exceptionHandler = exceptionHandler;//通过依赖注入传入
+        _transactionManager = transactionManager;
+    }
+
+    public void Redeem(Invoice invoice, int numberOfDays)
+    {
+        //防御性编程
+        if (invoice==null)
+        {
+            throw new Exception("Invoice为null了！");
+        }
+        if (numberOfDays<=0)
+        {
+            throw new Exception("numberOfDays不能小于1！");
+        }
+        //logging
+        Console.WriteLine("Redeem: {0}", DateTime.Now);
+        Console.WriteLine("Invoice: {0}", invoice.Id);
+
+        _exceptionHandler.Wrapper(() =>
+        {
+            _transactionManager.Wrapper(() =>
+            {
+                var pointsPerDay = 10;
+                if (invoice.Vehicle.Size>=Size.Luxury)
+                {
+                    pointsPerDay = 15;
+                }
+                var totalPoints = numberOfDays*pointsPerDay;
+                _loyaltyDataService.SubstractPoints(invoice.Customer.Id,totalPoints);
+                invoice.Discount = numberOfDays*invoice.CostPerDay;
+                // logging
+                Console.WriteLine("Redeem complete: {0}",DateTime.Now);
+            });
+        });
+    }
+}
+```
+
+上面是重构过的版本，`IExceptionHandler`等的代码没有贴出来，请查看源码，这个版本比之前的好多了。我将异常处理代码和事务/重试代码分别放到了`IExceptionHandler`和`ITransactionManager`中，这种设计有它的优势，一是它把那些代码段放到了他们自己的类中，以后可以重用；二是通过减少了横切关注点的噪音使得代码阅读更容易。
+
+当然，`Accrue`方法也可以重构成这样，此处略过。重构之后，代码和最原始的状态差不多了。但是构造函数好像太庞大了,也就是依赖太多了，实际上，这里可以优化一下，往下看。
+
+> Code Smells【代码异味】
+>  代码异味是一个俚语，本质上它不是bug，但它暗示了可能会存在一个问题。就像冰箱里的难闻气味表明背后有腐烂的肉一样，代码异味可能指示了当前的设计不太好，应该被重构。详细了解代码意味，可以**点击阅读**。
+
+我们可以将异常处理和事务管理合并成一个服务，如下：
+
+```
+public interface ITransactionManager2
+{
+    void Wrapper(Action method);
+}
+
+public class TransactionManager2 : ITransactionManager2
+{
+    public void Wrapper(Action method)
+    {
+        using (var ts=new TransactionScope())
+        {
+            var retires = 3;
+            var succeeded = false;
+            while (!succeeded)
+            {
+                try
+                {
+                    method();
+                    ts.Complete();
+                    succeeded = true;
+                }
+                catch (Exception ex)
+                {
+                    if (retires >= 0)
+                        retires--;
+                    else
+                    {
+                        if (!ExceptionHelper.Handle(ex))
+                            throw;
+                    }
+                }
+            }
+        }
+    }
+}
+```
+
+处理注入依赖过多的另一种方法是将所有的服务移到一个聚合服务或者门面服务（即，使用门面模式将所有的小服务组合成一个服务来组织这些小服务），我们这个例子中，`TransactionManager`和`ExceptionHandler`服务是独立的，但是可以使用第三个门面类来组织它们的使用。
+
+> 门面模式 The Facade Pattern
+>  门面模式为更大的或者更复杂的代码段提供了一个简化接口，比如，一个提供了许多方法和选项的服务类可以放到一个门面接口中，这样就可以通过限制选项或者提供简化方法的子集来降低复杂度。
+
+```
+public interface ITransactionFacade
+{
+    void Wrapper(Action method);
+}
+
+public class TransactionFacade : ITransactionFacade
+{
+    private readonly ITransactionManager _transactionManager;
+    private readonly IExceptionHandler _exceptionHandler;
+
+    public TransactionFacade(ITransactionManager transactionManager, IExceptionHandler exceptionHandler)
+    {
+        _transactionManager = transactionManager;
+        _exceptionHandler = exceptionHandler;
+    }
+
+    public void Wrapper(Action method)
+    {
+        _exceptionHandler.Wrapper(()=>
+            _transactionManager.Wrapper(method)
+            );
+    }
+}
+```
+
+这样修改后，`Accrual`和`Redemption`服务方法中的Wrapper样板代码就减少了很多，更干净了。但是还存在防御编程和logging的问题。
+
+> 使用装饰器模式重构
+>  不使用AOP重构代码的另一种方式是使用装饰器模式或代理器模式。剧透一下：装饰器/代理器模式只是AOP的一种简单形式。
+
+试想，如果有一种方法可以将上面所有的方法合起来成为一种方法，使得代码回到最初始状态（只有业务逻辑），那将是最好的了。那就读起来最简单，有最少的构造函数注入的服务。当业务逻辑变化时，我们也不必担心忘记或忽略了这些横切关注点，从而减少了变更的代价。
+
+## 变更的代价
+
+软件工程中不变的东西就是变化，需求变了，业务规则变了，技术变了。业务逻辑或需求的任何变更对处理原始版本的业务逻辑都是挑战性的（在代码重构之前）。
+
+### 需求变更
+
+因为许多原因，需求会变更。需求一开始可能是很模糊的，但是随着软件开始成型，就会变得更加具体。项目经理等人就会改变想法，对他们来说看似很小的变化，可能在代码中意味着很大的不同。
+ 虽然我们都知道**需求会变**是个真理，并且也已经反复见证了，但仍然在犯一个错，那就是编码时好像什么都不会改变。作为一个好的开发者，不仅要接受需求的变化，还要期待需求变化。
+ 项目的大小确实很重要，如果你是一个人编写一个简单的软件（比如一个具有两三个表单和许多静态内容的网站），那么变更的代价可能很低，因为改动的地方很少。
+
+### 方法签名变更
+
+给方法添加或移除参数就会导致方法签名变更。如果移除了一个参数，就必须移除该参数的防御性编程，否则，项目编译不通过。如果修改了一个参数的类型，那么防御性编程边界情况也会改变。更危险的是，如果添加了一个参数，就必须添加该参数的防御性编程，不幸的似乎，编译器不会帮你做这个，自己必须要记得做这件事。
+
+看一下之前的`Accrue`方法，签名改变的地方会立即影响防御编程和日志记录，如下：
+
+```
+public void Accrue(RentalAgreement agreement) {
+    // defensive programming
+    if(agreement == null) throw new ArgumentNullException("agreement");
+    // logging
+    Console.WriteLine("Accrue: {0}", DateTime.Now);
+    Console.WriteLine("Customer: {0}", agreement.Customer.Id);
+    Console.WriteLine("Vehicle: {0}", agreement.Vehicle.Id);
+    // ... snip ...
+    // logging
+    Console.WriteLine("Accrue complete: {0}", DateTime.Now);
+}
+```
+
+如果参数名从`agreement`变成`rentalAgreement`,那么必须记得更改`ArgumentNullException`的构造函数的字符串参数。如果方法名本身变了，也必须更改logging中记录的字符串方法名。虽然有很多重构工具可以辅助，如Resharp,但是其他的还要依赖你自己和团队的警惕。
+
+### 团队开发
+
+一个人开发就算了。假设有个新的需求，`ILoyaltyAccureService`接口需要添加一个新的方法，也许这个任务会派给其他队友，并且这个队友实现了业务逻辑并完成了任务。不幸地是，这个队友忘记了使用`TransactionFacade`的`Wrapper`方法，他的代码通过了UT，然后交给了QA。如果这是一个敏捷项目，这也许不是大问题：QA会捕捉到这个问题，并立即把这个问题报告给你。在一个瀑布项目中，QA可能在几个月之后才会发现这个bug。几个月后，你可能也不记得造成这个bug的原因了。就好像你是团队中的新员工一样。
+
+最糟糕的情况：它可能通过了QA，假设的异常或重试条件不是必要的或者没有被注意到，这样，代码就没有经过防御性编程、logging、事务等等进入了生产环境，这样迟早出问题！
+
+## 使用AOP重构
+
+再次重构代码，这次使用AOP，使用NuGet添加Postsharp到项目`CarRental.Core`中，关于如何添加，请查看**上一篇文章**。
+
+### 开发简单、独立的logging
+
+先来重构一个简单的横切关注点：logging。当方法调用时，会记录方法名和时间戳。创建一个日志切面类，继承自`OnMethodBoundaryAspect`，它允许我们在方法的边界插入代码：
+
+```
+[Serializable]
+public class LoggingAspect:OnMethodBoundaryAspect
+{
+    public override void OnEntry(MethodExecutionArgs args)
+    {
+        Console.WriteLine("{0}:{1}",args.Method.Name,DateTime.Now);
+    }
+
+    public override void OnSuccess(MethodExecutionArgs args)
+    {
+        Console.WriteLine("{0} complete:{1}",args.Method.Name,DateTime.Now);
+    }
+}
+```
+
+注意，我们可以通过`MethodExecutionArgs`参数获得方法名，因此，这个切面可以c重复使用，可给`Accure`和`Redeem`方法使用：
+
+```
+public class LoyaltyAccrualService:ILoyaltyAccrualService
+{
+    [LoggingAspect]
+    public void Accrue(RentalAgreement agreement)
+    {
+        //...
+    }
+}
+
+ public class LoyalRedemptionService:ILoyaltyRedemptionService
+ {
+     [LoggingAspect]
+     public void Redeem(Invoice invoice, int numberOfDays)
+     {
+         //...
+     }
+ }
+```
+
+现在就可以从这些方法中移除logging代码了。除此之外，我们还没有打印传入参数的Id，比如`Customer.Id`。有了Postsharp,我们可以取到所有的传入参数，但为了取到Id,必须还得做点事情。
+
+```
+public override void OnEntry(MethodExecutionArgs args)
+{
+    Console.WriteLine("{0}:{1}",args.Method.Name,DateTime.Now);
+    foreach (var argument in args.Arguments)//遍历方法的参数
+    {
+        if (argument.GetType()==typeof(RentalAgreement))
+        {
+            Console.WriteLine("Customer:{0}", ((RentalAgreement)argument).Customer.Id);
+            Console.WriteLine("Vehicle:{0}", ((RentalAgreement)argument).Vehicle.Id);
+        }
+        if (argument.GetType()==typeof(Invoice))
+        {
+            Console.WriteLine("Invoice:{0}",((Invoice)argument).Id);
+        }
+    }
+}
+```
+
+就这个例子来说，这样没问题了，但是对于一个大一点的应用，可能会有几十个甚至几百个不同的类型，如果需求是记录实体Id和信息，那么可以在实体上使用一个公共接口（或基类）。比如，如果`Invoice`和`RentalAgreement`都实现了`ILoggable`接口，该接口具有一个方法`string LogInfo()`,代码可以这样写:
+
+```
+ public override void OnEntry(MethodExecutionArgs args)
+        {
+            Console.WriteLine("{0}:{1}",args.Method.Name,DateTime.Now);
+            foreach (var argument in args.Arguments)//遍历方法的参数
+            {
+                if (argument!=null)
+                {
+                    if (typeof(ILoggable).IsAssignableFrom(argument.GetType()))
+                    {
+                        Console.WriteLine((ILoggable)argument.LogInfo());
+                    }
+                }
+
+            }
+        }
+```
+
+现在`Accure`和`Redeem`方法开始收缩了，因为我们将logging功能移到了它自己的类日志切面中去了。
+
+### 重构防御性编程
+
+下面还是使用`OnMethodBoundaryAspect`基类重构防御性编程，确保没有参数为null，以及所有的int参数不为0或负数：
+
+```
+ [Serializable]
+ public class DefensiveProgramming:OnMethodBoundaryAspect
+ {
+     public override void OnEntry(MethodExecutionArgs args)
+     {
+         var parameters = args.Method.GetParameters();//获取形参
+         var arguments = args.Arguments;//获取实参
+         for (int i = 0; i < arguments.Count; i++)
+         {
+             if (arguments[i]==null)
+             {
+                 throw new ArgumentNullException(parameters[i].Name);
+             }
+             if (arguments[i] is int&&(int)arguments[i]<=0)
+             {
+                 throw new ArgumentException("参数非法",parameters[i].Name);
+             }
+         }
+     }
+ }
+```
+
+首先检查实参是否为null，之后再判断参数是否是整型，并且是否合法。如果不处理这些事情，非法值会使得程序崩溃，但这里处理之后我们可以看到崩溃的确定原因（ArgumentNullException或ArgumentException 的异常信息）。
+
+同时，这个类没有直接耦合任何参数类型或服务类，这意味着可以重复使用在多个服务中。
+
+```
+[LoggingAspect]
+[DefensiveProgramming]
+public void Accrue(RentalAgreement agreement)
+{
+    //...略
+}
+
+[LoggingAspect]
+[DefensiveProgramming]
+public void Redeem(Invoice invoice, int numberOfDays)
+{
+    //...
+}
+```
+
+> 防御性编程切面
+>  这里写的防御性编程切面可能不是编写通用切面的最佳实践，在C#中，我们可以直接在每个参数上放置特性，因此可以这样替代前面那种方法。实际上，Nuget和github上有专门的类库**NullGuard**，一个Fody版本的，一个PostSharp版本的，大家可以去学习一下。
+
+到这里，需要说明一下了，.Net中的特性没有一定的顺序，也就是说，上面的代码里，`[LoggingAspect]`特性在`[DefensiveProgramming]`的上面，不是意味着`[LoggingAspect]`优先应用，两者的影响和顺序无关，怎么放都可以。
+
+有了防御性编程切面之后，服务代码又简化了，代码可读性又提高了，下一步来重构事务管理代码。
+
+### 为事务和重试创建切面
+
+要重构事务管理代码，这次不使用`OnMethodBoundaryAspect`,而是使用`MethodInterceptionAspect`，它不是在方法的边界插入代码，而是会拦截任何该方法的调用。拦截切面会在拦截到方法调用时执行切面代码，之后再执行拦截到的方法；而边界切面会在方法执行前后运行切面代码。
+
+```
+ [Serializable]
+ public class TransactionManagement : MethodInterceptionAspect
+ {
+     public override void OnInvoke(MethodInterceptionArgs args)
+     {
+         using (var ts = new TransactionScope())
+         {
+             var retries = 3;//重试3次
+             var succeeded = false;
+             while (!succeeded)
+             {
+                 try
+                 {
+                     args.Proceed();//继续执行拦截的方法
+                     ts.Complete();//事务完成
+                     succeeded = true;
+                 }
+
+                 catch (Exception ex)
+                 {
+                     if (retries >= 0)
+                         retries--;
+                     else
+                         throw ex;
+                 }
+             }
+         }
+     }
+ }
+```
+
+这个切面例子的代码和业务逻辑中的代码基本一样，除了使用`args.Proceed()`方法替换了业务逻辑代码。`Proceed()`方法意思就是继续执行拦截到的方法。通过上面的代码，我们的代码又简化了，下面记得给服务方法添加特性,并将业务代码从事务中移除：
+
+```
+ [LoggingAspect]
+ [DefensiveProgramming]
+ [TransactionManagement]
+ public void Accrue(RentalAgreement agreement)
+ {
+     //...略
+ }
+
+ [LoggingAspect]
+ [DefensiveProgramming]
+ [TransactionManagement]
+ public void Redeem(Invoice invoice, int numberOfDays)
+ {
+     //...
+ }
+```
+
+为了说明事务切面能正常工作，可以在`OnInvoke`内部前后添加`Console.WriteLine("{0}方法开始/结束：{1}", args.Method.Name,DateTime.Now);`，打印出来看一下。
+
+### 重构异常处理切面
+
+异常处理切面需要使用`OnMethodBoundaryAspect`，或者可以使用`OnExceptionAspect`，无论使用哪一种，样子都是差不多的。
+
+```
+ [Serializable]
+ public class MyExceptionAspect:OnExceptionAspect
+ {
+     public override void OnException(MethodExecutionArgs args)
+     {
+         if (ExceptionHelper.Handle(args.Exception))
+         {
+            args.FlowBehavior=FlowBehavior.Continue;
+         }
+     }
+ }
+```
+
+`ExceptionHelper`是我自己定义的异常处理静态类，这里出现了一个新玩意`FlowBehavior`,它指定了当切面执行完之后，接下来怎么办！这里设置了`Continue`,也就是说，如果异常处理完了，程序继续执行，否则，默认的`FlowBehavior`是 `RethrowException`,这样的话，切面就没效果了，异常又再次抛出来了。
+
+移除异常处理的代码，加上异常处理切面特性，至此，所有的横切关注点就重构完了。下面完整地看一下成品：
+
+```
+ [LoggingAspect]
+ [DefensiveProgramming]
+ [TransactionManagement]
+ [MyExceptionAspect]
+ public void Accrue(RentalAgreement agreement)
+ {
+     var rentalTime = agreement.EndDate.Subtract(agreement.StartDate);
+     var days = (int) Math.Floor(rentalTime.TotalDays);
+     var pointsPerDay = 1;
+     if (agreement.Vehicle.Size>=Size.Luxury)
+     {
+         pointsPerDay = 2;
+     }
+     var totalPoints = days*pointsPerDay;
+     _loyaltyDataService.AddPoints(agreement.Customer.Id,totalPoints);
+ }
+
+
+ [LoggingAspect]
+ [DefensiveProgramming]
+ [TransactionManagement]
+ [MyExceptionAspect]
+ public void Redeem(Invoice invoice, int numberOfDays)
+ {
+     var pointsPerday = 10;
+     if (invoice.Vehicle.Size>=Size.Luxury)
+     {
+         pointsPerday = 15;
+     }
+     var totalPoints = numberOfDays*pointsPerday;
+     _loyaltyDataService.SubstractPoints(invoice.Customer.Id,totalPoints);
+     invoice.Discount = numberOfDays*invoice.CostPerDay;
+ }
+```
+
+可以看到，这样的代码看着很不错吧？又回到了之前最开始的代码，只有业务逻辑的单一职责状态，所有的横切关注点都放到了它们各自的类中去了。代码非常容易阅读。
+
+再来看看使用AOP的优点：
+
+1. 更改方便。如果更改了方法的方法名或参数名，切面会自动处理。切面不会关心业务逻辑是否发生变化（比如每天积分的变化），业务逻辑也不会关心你是否从`Console`切换到了`log4Net或NLog`，除非你想使用`TransactionScope`之外的东西处理事务或者需要改变重试次数的最大值。
+2. 可以将这些切面重复给每个服务的各个方法使用，而不是不使用AOP时，每次都要复制粘贴相似的代码。
+3. 可以在整个类、命名空间或程序集使用多广播切面，而不用在每个方法上这样写。
+
+### 小结
+
+这篇的目的
+
+一是演示一下横切关注点可以使你得代码**脏乱差**，常规的OOP和使用好设计模式在许多情况下可以帮助重构代码，但是很多情况还是会让你的代码和横切关注点紧耦合。即使你的代码遵守了SPR和DI，代码也会相互纠缠，错乱或重复。
+
+二来是说明一下变更的代价是和你的代码多么灵活、可读和模块化是相关的。即使已经重构的很好了，仍能在传统的OOP中中发现一些不容易解耦的横切关注点。
+
+三是演示一下AOP工具（如PostSharp）如何让你对横切关注点进行解耦。使用AOP重构的版本，所有的横切关注点都有它自己的类，服务类减少到只有业务逻辑和执行业务逻辑。
+
+本篇只是使用AOP的热身，如果这是你初次接触AOP（不太可能），那么你已经走上了构建更好、更灵活、更容易阅读和维护的软件之路。
+
