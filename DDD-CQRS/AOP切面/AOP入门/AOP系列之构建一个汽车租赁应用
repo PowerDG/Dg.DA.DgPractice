@@ -763,7 +763,7 @@ public class TransactionFacade : ITransactionFacade
 
 看一下之前的`Accrue`方法，签名改变的地方会立即影响防御编程和日志记录，如下：
 
-```
+```csharp
 public void Accrue(RentalAgreement agreement) {
     // defensive programming
     if(agreement == null) throw new ArgumentNullException("agreement");
@@ -793,7 +793,7 @@ public void Accrue(RentalAgreement agreement) {
 
 先来重构一个简单的横切关注点：logging。当方法调用时，会记录方法名和时间戳。创建一个日志切面类，继承自`OnMethodBoundaryAspect`，它允许我们在方法的边界插入代码：
 
-```
+```csharp
 [Serializable]
 public class LoggingAspect:OnMethodBoundaryAspect
 {
@@ -811,7 +811,7 @@ public class LoggingAspect:OnMethodBoundaryAspect
 
 注意，我们可以通过`MethodExecutionArgs`参数获得方法名，因此，这个切面可以c重复使用，可给`Accure`和`Redeem`方法使用：
 
-```
+```csharp
 public class LoyaltyAccrualService:ILoyaltyAccrualService
 {
     [LoggingAspect]
