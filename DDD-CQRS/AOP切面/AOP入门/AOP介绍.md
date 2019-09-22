@@ -314,7 +314,7 @@ ASP.NET有一个可以实现和在web.config中安装的IHttpModule。完成之�
 
 ![图片](4924113b-24bb-490c-b909-1bb53ffb4961.png)
 
-ASP.NET MVC应用程序也是一样，我们也可以创建实现了`IActionFilter`的`Attribute`类。这些特性可以应用于action方法，它们会在action方法执行前后运行（分别是OnActionExecuting和OnActionExecuted）。如果在一个新的ASP.NET MVC项目中，使用了默认的`AccountController`，那么你很可能已经看到了action方法上的`[Authorize]`特性。`AuthorizeAtrribute`是`IActionFilter`的内置实现，它会为我们处理forms认证而不需要在所有的控制器的action方法都添加认证代码！
+ASP.NET MVC应用程序也是一样，我们也可以创建实现了`IActionFilter`的`Attribute`类。这些特性可以应用于action方法，它们会在**action方法执行前后运行（分别是OnActionExecuting和OnActionExecuted）**。如果在一个新的ASP.NET MVC项目中，使用了默认的`AccountController`，那么你很可能已经看到了**action方法上的`[Authorize]`特性。`AuthorizeAtrribute`是`IActionFilter`的内置实现**，它会为我们处理forms认证而不需要在所有的控制器的action方法都添加认证代码！
 
 ![图片](413e2cdb-eba2-4a96-8a36-d0c3a657f741.png)
 
@@ -330,7 +330,7 @@ ASP.NET MVC应用程序也是一样，我们也可以创建实现了`IActionFilt
 
 ![图片](1a0368f0-9f64-4dfb-a12c-f4c329ce13ed.png)
 
-然后，打开VS的程序包管理器控制台，输入`Install-Package postsharp`安装PostSharp（当然，也可以通过可视化的方式安装，这里不解释了）。
+然后，打开VS的程序包管理器控制台，输入`Install-Package postsharp`**安装PostSharp**（当然，也可以通过可视化的方式安装，这里不解释了）。
 
 这里虽然安装了postsharp的程序包，但是你还得安装PostSharp的扩展，安装了扩展之后会有一个45天的有效期（因为PostSharp是收费的），此外，PostSharp   的Express版是商用免费的，因此，我们也可以在工作中使用这个免费版的（仍然需要许可，但是是一个免费许可）。安装了postsharp之后，就可以在解决方案资源管理器的引用中看到项目中添加了PostSharp引用。
 
@@ -359,9 +359,9 @@ static void Main(string[] args)
 
 以上代码很简单，相信初学C#的人都会知道什么意思，就不解释了！
 
-继续深入关于切面，在创建一个切面之前，我们先要明确一点：这个切面要处理什么横切关注点。这里为了简单，我们定义的需求很简单，在方法执行前后分别输出"方法执行前"和"方法执行后"。因为这个切面可以被其他的类复用，所以我们必须创建一个新类MyAspect,它继承自`OnMehodBoundaryAspect`(它是PostSharp.Aspects命名空间的一个基类)，代码如下：
+继续深入关于切面，在创建一个切面之前，我们先要明确一点：这个切面要处理什么横切关注点。这里为了简单，我们定义的需求很简单，在方法执行前后分别输出"方法执行前"和"方法执行后"。因为这个切面可以被其他的类复用，所以我们必须创建一个**新类MyAspect,它继承自`OnMehodBoundaryAspect`(它是PostSharp.Aspects命名空间的一个基类)，代码如下：**
 
-```
+```csharp
 [Serializable]
 public class MyAspect:OnMethodBoundaryAspect
 {
@@ -379,13 +379,13 @@ public class MyAspect:OnMethodBoundaryAspect
 
 PostSharp要求切面类必须是`Serializable`(因为PostSharp在编译时实例化切面，这样它们就可以在编译时和运行时持久存在，后面的系列还会说的，看官莫急)。
 
-还记得连接点吗？每个方法都有边界连接点：方法开始之前，结束之后，抛出异常时，正常结束时（在PostSharp中分别对应`OnEntry,OnExit,OnException和OnSuccess`）。
+还记得连接点吗？每个方法都有边界连接点：方法**开始之前，结束之后，抛出异常时，正常结束时**（在PostSharp中**分别对应`OnEntry,OnExit,OnException和OnSuccess`）。**
 
 注意一下 `MethodExecutionArgs`参数，它提供了关于绑定方法的信息和上下文。这个简单的例子中没用它，但是在真实项目中这个参数会经常使用。
 
-这个切面的Advice（通知）只是简单地输出了一句话。现在，切面定义好了，但是在哪个方法前后输出信息呢？最基本的方式就是告诉PostSharp该切面以特性的方式用在哪个方法上。比如，将`MyAspect`切面以特性的形式用在之前创建的“Hello，AOP！”的`MyMethod`方法上：
+这个切面的Advice（通知）只是简单地输出了一句话。**现在，切面定义好了**，但是在哪个方法前后输出信息呢？最基本的方式就是告诉PostSharp该切面以特性的方式用在哪个方法上。比如，将`MyAspect`切面以特性的形式用在之前创建的“Hello，AOP！”的`MyMethod`方法上：
 
-```
+```csharp
 class MyClass
 {
     [MyAspect]
@@ -396,7 +396,7 @@ class MyClass
 }
 ```
 
-现在，再次运行程序。在程序编译完成之后，PostSharp会接管并执行Weaving（编织）。因为PostSharp是一个**post compiler**AOP 工具，因此它会在程序编译之后、执行之前修改程序。
+现在，再次运行程序。在程序编译完成之后，PostSharp**会接管并执行Weaving（编织）。**因为PostSharp是一个**post compiler**AOP 工具，因此它会**在程序编译之后、执行之前修改程序。**
 
 执行结果如下：
 
@@ -406,13 +406,13 @@ class MyClass
 >
 > 事实上，使用PostSharp时没必要在每个代码段上都添加特性，请继续关注该博客，后面会讲PostSharp的多播特性。在介绍多播特性之前，我们为了简单先使用单个特性。
 
-现在，我们已经写了一个切面，并告诉PostSharp在那里使用它，以及PostSharp已经执行了编织。这个简单的例子也许吸引不了你，但是注意你没有对`MyMethod`本身做任何修改，就可以把代码放到它的周围，当然，要使用[MyAspect]特性才行。此外，使用特性并不是使用AOP的唯一方式：例如Castle DynamicProxy使用了IoC工具，这个后面再讲。
+现在，我们已经写了一个切面，并告诉PostSharp在那里使用它，以及PostSharp已经执行了编织。这个简单的例子也许吸引不了你，但是注意你没有对`MyMethod`本身做任何修改，就可以把代码放到它的周围，当然，要使用[MyAspect]特性才行。此外，使用特性并不是使用AOP的唯一方式**：例如Castle DynamicProxy使用了IoC工具**，这个后面再讲。
 
 ### 小结
 
 AOP并没有听上去那么复杂，你可能需要花费点时间来习惯，因为你可能必须要调整思考横切关注点的方式。
 
-AOP是一个鼓舞人心的、强大的工具，并且使用起来很有趣。本系列教程将使用的AOP工具是PostSharp和Castle DynamicProxy，如果你不喜欢，你可以选择其他的AOP工具，见下表：
+AOP是一个鼓舞人心的、强大的工具，并且使用起来很有趣。本系列**教程将使用的AOP工具是PostSharp和Castle DynamicProxy**，如果你不喜欢，你可以选择其他的AOP工具，见下表：
 
 #### 编译时AOP工具
 
@@ -424,12 +424,14 @@ AOP是一个鼓舞人心的、强大的工具，并且使用起来很有趣。�
 
 #### 运行时AOP工具
 
-- Castle Windsor/DynamicProxy
+- **Castle Windsor/DynamicProxy**
 - StructureMap
 - Unity
 - Spring.NET
 
-最后，无论你选择的是什么工具，AOP都会更加有效地完成工作：再也不用复制-粘贴相同的样板代码了或者在样板代码中修复相同的bug达到上百次。在抽象层面上，这会帮你有效地坚持**单一职责原则**和 **开闭原则**。在真实项目中，你会将更多的时间花在增值的功能上而不是那些乏味的工作上。总之，掌握了AOP，会让你事半功倍，爱上Code!
+最后，无论你选择的是什么工具，AOP都会更加有效地完成工作：**再也不用复制-粘贴相同的样板代码了或者在样板代码中修复相同的bug达到上百次**。
+
+在抽象层面上，这会帮你有效地坚持**单一职责原则**和 **开闭原则**。在真实项目中，你会将更多的时间花在增值的功能上而不是那些乏味的工作上。总之，掌握了AOP，会让你事半功倍，爱上Code!
 
 好文要顶
 
