@@ -32,74 +32,77 @@
 
 演示代码：
 
-[![复制代码](copycode.gif)](javascript:void(0);)
+[![复制代码](copycode.gif)
 
- 1     public class BankAccountManager
- 2     {
- 3         private IBankAccountDAL bankAccountDAL;
- 4 
- 5         public BankAccountManager(IBankAccountDAL bankAccountDAL)
- 6         {
- 7             this.bankAccountDAL = bankAccountDAL;
- 8         }
- 9 
-10         /// <summary>
-11         /// 该方法完成转账业务逻辑
-12         /// </summary>
-13          public void TransferMoney(Guid fromBankAccountId, Guid toBankAccountId, double moneyAmount)
-14         {
-15             var fromBankAccount = bankAccountDAL.GetById(fromBankAccountId);
-16             var toBankAccount = bankAccountDAL.GetById(toBankAccountId);
-17             if (fromBankAccount.MoneyAmount < moneyAmount)
-18             {
-19                 throw new NotSupportedException("账户余额不足。");
-20             }
-21             fromBankAccount.MoneyAmount -= moneyAmount;
-22             toBankAccount.MoneyAmount += moneyAmount;
-23 
-24             DateTime transferDate = DateTime.Now;
-25             fromBankAccount.TransferHistories.Add(new TransferHistory
-26             {
-27                 FromAccountId = fromBankAccountId,
-28                 ToAccountId = toBankAccountId,
-29                 MoneyAmount = moneyAmount,
-30                 TransferDate = transferDate
-31             });
-32             toBankAccount.TransferHistories.Add(new TransferHistory
-33             {
-34                 FromAccountId = fromBankAccountId,
-35                 ToAccountId = toBankAccountId,
-36                 MoneyAmount = moneyAmount,
-37                 TransferDate = transferDate
-38             });
-39         }
-40     }
-41     /// <summary>
-42     /// 银行帐号
-43     /// </summary>
-44     public class BankAccount
-45     {
-46         public BankAccount() { this.TransferHistories = new List<TransferHistory>(); }
-47         public Guid Id { get; set; }
-48         public double MoneyAmount { get; set; }
-49         public IList<TransferHistory> TransferHistories { get; set; }
-50     }
-51     /// <summary>
-52     /// 转账记录
-53     /// </summary>
-54     public class TransferHistory
-55     {
-56         public Guid FromAccountId { get; set; }
-57         public Guid ToAccountId { get; set; }
-58         public double MoneyAmount { get; set; }
-59         public DateTime TransferDate { get; set; }
-60     }
-61     public interface IBankAccountDAL
-62     {
-63         BankAccount GetById(Guid bankAccountId);
-64     }
+```csharp
+public class BankAccountManager
+    {
+        private IBankAccountDAL bankAccountDAL;
 
-[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
+        public BankAccountManager(IBankAccountDAL bankAccountDAL)
+        {
+            this.bankAccountDAL = bankAccountDAL;
+        }
+
+        /// <summary>
+        /// 该方法完成转账业务逻辑
+        /// </summary>
+         public void TransferMoney(Guid fromBankAccountId, Guid toBankAccountId, double moneyAmount)
+        {
+            var fromBankAccount = bankAccountDAL.GetById(fromBankAccountId);
+            var toBankAccount = bankAccountDAL.GetById(toBankAccountId);
+            if (fromBankAccount.MoneyAmount < moneyAmount)
+            {
+                throw new NotSupportedException("账户余额不足。");
+            }
+            fromBankAccount.MoneyAmount -= moneyAmount;
+            toBankAccount.MoneyAmount += moneyAmount;
+
+            DateTime transferDate = DateTime.Now;
+            fromBankAccount.TransferHistories.Add(new TransferHistory
+            {
+                FromAccountId = fromBankAccountId,
+                ToAccountId = toBankAccountId,
+                MoneyAmount = moneyAmount,
+                TransferDate = transferDate
+            });
+            toBankAccount.TransferHistories.Add(new TransferHistory
+            {
+                FromAccountId = fromBankAccountId,
+                ToAccountId = toBankAccountId,
+                MoneyAmount = moneyAmount,
+                TransferDate = transferDate
+            });
+        }
+    }
+    /// <summary>
+    /// 银行帐号
+    /// </summary>
+    public class BankAccount
+    {
+        public BankAccount() { this.TransferHistories = new List<TransferHistory>(); }
+        public Guid Id { get; set; }
+        public double MoneyAmount { get; set; }
+        public IList<TransferHistory> TransferHistories { get; set; }
+    }
+    /// <summary>
+    /// 转账记录
+    /// </summary>
+    public class TransferHistory
+    {
+        public Guid FromAccountId { get; set; }
+        public Guid ToAccountId { get; set; }
+        public double MoneyAmount { get; set; }
+        public DateTime TransferDate { get; set; }
+    }
+    public interface IBankAccountDAL
+    {
+        BankAccount GetById(Guid bankAccountId);
+    }
+}
+```
+
+
 
 **Evans DDD（充血模型）**
 
@@ -114,104 +117,106 @@
 
  下面也给出一个实现了银行转账业务逻辑的充血模型实现：
 
-[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
+```csharp
+/// <summary>
+    /// 银行帐号, 它是一个Evans DDD中的实体, 并且是聚合根
+    /// </summary>
+    public class BankAccount
+    {
+        private IList<TransferHistory> transferHistories;
 
- 1 /// <summary>
- 2     /// 银行帐号, 它是一个Evans DDD中的实体, 并且是聚合根
- 3     /// </summary>
- 4     public class BankAccount
- 5     {
- 6         private IList<TransferHistory> transferHistories;
- 7 
- 8         public BankAccount() : this(Guid.NewGuid(), 0D, new List<TransferHistory>()) { }
- 9         public BankAccount(Guid id, double moneyAmount, IList<TransferHistory> transferHistories)
-10         {
-11             this.Id = id;
-12             this.MoneyAmount = moneyAmount;
-13             this.transferHistories = transferHistories;
-14         }
-15         public Guid Id { get; private set; }
-16         public double MoneyAmount { get; private set; }
-17         public IList<TransferHistory> TransferHistories
-18         {
-19             get
-20             {
-21                 return transferHistories.ToList().AsReadOnly();
-22             }
-23         }
-24 
-25         public void TransferTo(Guid toBankAccountId, double moneyAmount, DateTime transferDate)
-26         {
-27             if (this.MoneyAmount < moneyAmount)
-28             {
-29                 throw new NotSupportedException("账户余额不足。");
-30             }
-31             this.MoneyAmount -= moneyAmount;
-32             this.TransferHistories.Add(
-33                 new TransferHistory(this.Id, toBankAccountId, moneyAmount, transferDate));
-34         }
-35         public void TransferFrom(Guid fromBankAccountId, double moneyAmount, DateTime transferDate)
-36         {
-37             this.MoneyAmount += moneyAmount;
-38             this.TransferHistories.Add(
-39                 new TransferHistory(fromBankAccountId, this.Id, moneyAmount, transferDate));
-40         }
-41     }
-42     /// <summary>
-43     /// 转账记录, 它是一个Evans DDD中的值对象
-44     /// </summary>
-45     public class TransferHistory
-46     {
-47         public TransferHistory(Guid fromAccountId,
-48                                Guid toAccountId,
-49                                double moneyAmount,
-50                                DateTime transferDate)
-51         {
-52             this.FromAccountId = fromAccountId;
-53             this.ToAccountId = toAccountId;
-54             this.MoneyAmount = moneyAmount;
-55             this.TransferDate = transferDate;
-56         }
-57 
-58         public Guid FromAccountId { get; private set; }
-59         public Guid ToAccountId { get; private set; }
-60         public double MoneyAmount { get; private set; }
-61         public DateTime TransferDate { get; private set; }
-62     }
-63     /// <summary>
-64     /// BankAccount聚合根对应的仓储
-65     /// </summary>
-66     public interface IBankAccountRepository
-67     {
-68         BankAccount GetBankAccount(Guid bankAccountId);
-69     }
-70     /// <summary>
-71     /// 转账服务, 它是一个Evans DDD中的领域服务
-72     /// </summary>
-73     public class BankAccountService
-74     {
-75         private IBankAccountRepository bankAccountRepository;
-76 
-77         public BankAccountService(IBankAccountRepository bankAccountRepository)
-78         {
-79             this.bankAccountRepository = bankAccountRepository;
-80         }
-81 
-82         /// <summary>
-83         /// 该方法完成转账业务逻辑
-84         /// </summary>
-85         public void TransferMoney(Guid fromBankAccountId, Guid toBankAccountId, double moneyAmount)
-86         {
-87             var fromBankAccount = bankAccountRepository.GetBankAccount(fromBankAccountId);
-88             var toBankAccount = bankAccountRepository.GetBankAccount(toBankAccountId);
-89 
-90             DateTime transferDate = DateTime.Now;
-91             fromBankAccount.TransferTo(toBankAccountId, moneyAmount, transferDate);
-92             toBankAccount.TransferFrom(fromBankAccountId, moneyAmount, transferDate);
-93         }
-94     }
+        public BankAccount() : this(Guid.NewGuid(), 0D, new List<TransferHistory>()) { }
+        public BankAccount(Guid id, double moneyAmount, IList<TransferHistory> transferHistories)
+        {
+            this.Id = id;
+            this.MoneyAmount = moneyAmount;
+            this.transferHistories = transferHistories;
+        }
+        public Guid Id { get; private set; }
+        public double MoneyAmount { get; private set; }
+        public IList<TransferHistory> TransferHistories
+        {
+            get
+            {
+                return transferHistories.ToList().AsReadOnly();
+            }
+        }
 
-[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
+        public void TransferTo(Guid toBankAccountId, double moneyAmount, DateTime transferDate)
+        {
+            if (this.MoneyAmount < moneyAmount)
+            {
+                throw new NotSupportedException("账户余额不足。");
+            }
+            this.MoneyAmount -= moneyAmount;
+            this.TransferHistories.Add(
+                new TransferHistory(this.Id, toBankAccountId, moneyAmount, transferDate));
+        }
+        public void TransferFrom(Guid fromBankAccountId, double moneyAmount, DateTime transferDate)
+        {
+            this.MoneyAmount += moneyAmount;
+            this.TransferHistories.Add(
+                new TransferHistory(fromBankAccountId, this.Id, moneyAmount, transferDate));
+        }
+    }
+    /// <summary>
+    /// 转账记录, 它是一个Evans DDD中的值对象
+    /// </summary>
+    public class TransferHistory
+    {
+        public TransferHistory(Guid fromAccountId,
+                               Guid toAccountId,
+                               double moneyAmount,
+                               DateTime transferDate)
+        {
+            this.FromAccountId = fromAccountId;
+            this.ToAccountId = toAccountId;
+            this.MoneyAmount = moneyAmount;
+            this.TransferDate = transferDate;
+        }
+
+        public Guid FromAccountId { get; private set; }
+        public Guid ToAccountId { get; private set; }
+        public double MoneyAmount { get; private set; }
+        public DateTime TransferDate { get; private set; }
+    }
+    /// <summary>
+    /// BankAccount聚合根对应的仓储
+    /// </summary>
+    public interface IBankAccountRepository
+    {
+        BankAccount GetBankAccount(Guid bankAccountId);
+    }
+    /// <summary>
+    /// 转账服务, 它是一个Evans DDD中的领域服务
+    /// </summary>
+    public class BankAccountService
+    {
+        private IBankAccountRepository bankAccountRepository;
+
+        public BankAccountService(IBankAccountRepository bankAccountRepository)
+        {
+            this.bankAccountRepository = bankAccountRepository;
+        }
+
+        /// <summary>
+        /// 该方法完成转账业务逻辑
+        /// </summary>
+        public void TransferMoney(Guid fromBankAccountId, Guid toBankAccountId, double moneyAmount)
+        {
+            var fromBankAccount = bankAccountRepository.GetBankAccount(fromBankAccountId);
+            var toBankAccount = bankAccountRepository.GetBankAccount(toBankAccountId);
+
+            DateTime transferDate = DateTime.Now;
+            fromBankAccount.TransferTo(toBankAccountId, moneyAmount, transferDate);
+            toBankAccount.TransferFrom(fromBankAccountId, moneyAmount, transferDate);
+        }
+    }
+```
+
+
+
+
 
 **基于事件驱动的设计**
 
