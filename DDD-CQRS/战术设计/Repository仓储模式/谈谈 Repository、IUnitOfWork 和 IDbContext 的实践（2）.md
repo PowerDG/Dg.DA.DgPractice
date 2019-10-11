@@ -30,7 +30,7 @@
 
 抽离 IRepository 啥意思？我们直接来看下代码：
 
-```
+```csharp
 namespace DDD.Sample.Domain.IRepository
 {
     public interface IRepository<TAggregateRoot> 
@@ -49,7 +49,7 @@ namespace DDD.Sample.Domain.IRepository
 
 IRepository 是一个泛型接口，类型为 IAggregateRoot，我们在里面定义了增删改查的常用操作，它的作用就是减少 Repository 的冗余代码，我们看下 IStudentRepository 的定义：
 
-```
+```csharp
 namespace DDD.Sample.Domain.IRepository
 {
     public interface IStudentRepository : IRepository<Student>
@@ -63,7 +63,7 @@ IStudentRepository 需要继承 IRepository，并确定泛型类型为 Student�
 
 IRepository 需要进行实现，如果在 StudentRepository 中进行实现，就没有什么作用了，所以我们需要一个 BaseRepository 来实现 IRepository：
 
-```
+``` csharp
 namespace DDD.Sample.Repository
 {
     public abstract class BaseRepository<TAggregateRoot> : IRepository<TAggregateRoot>
@@ -101,7 +101,7 @@ namespace DDD.Sample.Repository
 
 咋一看 BaseRepository 有点像我们上篇的 UnitOfWork，因为我们把增删改放在 Repository 了，因为  Repository 还是和 UnitOfWork 为平级关系，所以我们在 Repository 中用的 IDbContext 而非  IUnitOfWork，这个没什么问题，我们看下 StudentRepository 的具体实现：
 
-```
+```csharp
 namespace DDD.Sample.Repository
 {
     public class StudentRepository : BaseRepository<Student>, IStudentRepository
@@ -127,7 +127,7 @@ Repository 的改造基本上就这些，表面看起来确实很好，另外，
 
 我们先看下 IUnitOfWork 的变化，直接贴下代码：
 
-```
+```csharp
 namespace DDD.Sample.Infrastructure.Interfaces
 {
     public interface IUnitOfWork
@@ -141,7 +141,7 @@ namespace DDD.Sample.Infrastructure.Interfaces
 
 因为增删改都移到 Repository 中了，所以 IUnitOfWork 的工作就很简单，只有 Commit 和 Rollback，实现也比较简单，我们看下：
 
-```
+```csharp
 namespace DDD.Sample.Infrastructure
 {
     public class UnitOfWork : IUnitOfWork
@@ -168,7 +168,7 @@ namespace DDD.Sample.Infrastructure
 
 这个没啥说的，我们直接看下 Application Service 的代码：
 
-```
+```csharp
 namespace DDD.Sample.Application
 {
     public class StudentService : IStudentService
@@ -209,7 +209,7 @@ StudentService 其实变化不大，只是将原来的 _unitOfWork 添加修改�
 
 我们进行改造下：
 
-```
+```csharp
 namespace DDD.Sample.Application
 {
     public class StudentService : IStudentService
@@ -280,7 +280,7 @@ IRepository 只有查询，这是我们的定义，在 Application Service 的�
 
 集合访问领域对象，那 Repository 如果这样设计呢：
 
-```
+```csharp
 public class StudentRepository : IStudentRepository
 {
     private IQueryable<Student> _students;
@@ -312,8 +312,17 @@ public class StudentRepository : IStudentRepository
 
 对于本篇博文，如果你有什么问题或疑问，欢迎探讨学习。:)
 
+
+
+---
+
+
+
  作者：田园里的蟋蟀 
 微信公众号：**你好架构** 
 出处：http://www.cnblogs.com/xishuai/  
+
+
+
  公众号会不定时的分享有关架构的方方面面，包含并不局限于：Microservices（微服务）、Service  Mesh（服务网格）、DDD/TDD、Spring Cloud、Dubbo、Service  Fabric、Linkerd、Envoy、Istio、Conduit、Kubernetes、Docker、MacOS/Linux、Java、.NET  Core/ASP.NET  Core、Redis、RabbitMQ、MongoDB、GitLab、CI/CD（持续集成/持续部署）、DevOps等等。 
  本文版权归作者和博客园共有，欢迎转载，但未经作者同意必须保留此段声明，且在文章页面明显位置给出原文连接。 
