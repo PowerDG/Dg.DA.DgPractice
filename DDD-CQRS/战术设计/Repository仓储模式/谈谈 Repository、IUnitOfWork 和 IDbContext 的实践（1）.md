@@ -1,4 +1,4 @@
-#                   [DDD 领域驱动设计－谈谈 Repository、IUnitOfWork 和 IDbContext 的实践（1）](https://www.cnblogs.com/xishuai/p/ddd-repository-iunitofwork-and-idbcontext.html)              
+#   [DDD 领域驱动设计－谈谈 Repository、IUnitOfWork 和 IDbContext 的实践（1）](https://www.cnblogs.com/xishuai/p/ddd-repository-iunitofwork-and-idbcontext.html)
 
 
 
@@ -18,7 +18,7 @@
 
 首先，关于 IUnitOfWork 的定义实现，网上我搜了很多，很多都太一样，比如有人这样定义：
 
-```
+```csharp
 public interface IUnitOfWork
 {
     IQueryable<TEntity> Set<TEntity>() where TEntity : class;
@@ -35,7 +35,7 @@ public interface IUnitOfWork
 
 如果 IUnitOfWork 按照上面的代码进行设计，那 Repository 会是什么样的呢？我们来看一下：
 
-```
+```csharp
 public class StudentRepository: IStudentRepository
 {
     private IUnitOfWork _unitOfWork;
