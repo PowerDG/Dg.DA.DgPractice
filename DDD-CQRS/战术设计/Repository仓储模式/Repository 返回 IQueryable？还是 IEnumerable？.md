@@ -1,13 +1,13 @@
-​               [Repository 返回 IQueryable？还是 IEnumerable？](https://www.cnblogs.com/xishuai/p/repository-return-iqueryable-or-ienumerable.html)
+               [Repository 返回 IQueryable？还是 IEnumerable？](https://www.cnblogs.com/xishuai/p/repository-return-iqueryable-or-ienumerable.html)
 
 
 
 这是一个很有意思的问题，我们一步一步来探讨，首先需要明确两个概念（来自 MSDN）：
 
 - IQueryable：提供对未指定数据类型的特定数据源的查询进行计算的功能。
-- IEnumerable：公开枚举数，该枚举数支持在非泛型集合上进行简单迭代。
+- IEnumerable：公开枚举数，该枚举数支持在**非泛型集合上**进行简单迭代。
 
-IQueryable 继承自 IEnumerable，它们俩最大的区别是，IQueryable 是表达式树处理，可以延迟查询，而  IEnumerable 只能查询在本地内存中，Repository 的概念就不多说了，在“伪 DDD”设计中，你可以把它看作是数据访问层。
+IQueryable 继承自 IEnumerable，它们俩最大的区别是，**IQueryable 是表达式树处理**，可以**延迟查询**，而  IEnumerable 只能查询在本地内存中，Repository 的概念就不多说了，在“伪 DDD”设计中，你可以把它看作是数据访问层。
 
 
 
@@ -203,7 +203,7 @@ public interface IBookRepository
 1. 隔离单元测试。
 2. 数据访问在 Repository 之外完成。
 3. 数据访问异常在 Repository 之外抛出。
-4. 该领域层将充斥着这些相当详细查询。
+4. 该领域层将充斥着这些**相当详细查询**。
 5. ...
 
 好处就不多说了，因为我们上面已经实践过了，关于坏处，“隔离单元测试”是什么意思呢？也就是说我们不能很好的对 Repository  进行单元测试，一方面是因为 IRepository 是那么的简单（就两个方法），另一方面 IQueryable  是查询表达树，它并不是完成时，只有在具体调用的时候才会查询完成，所以，对于 Repository 的单元测试，显然是没有任何意义的。
