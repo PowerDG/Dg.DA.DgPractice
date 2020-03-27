@@ -1,0 +1,286 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<opml version="2.0">
+  <head>
+    <title></title>
+    <flavor>dynalist</flavor>
+    <source>https://dynalist.io</source>
+    <ownerName>powerdg</ownerName>
+    <ownerEmail>1049365046@qq.com</ownerEmail>
+  </head>
+  <body>
+    <outline text="openDopenDg">
+      <outline text="DDD领域驱动设计">
+        <outline text="工厂">
+          <outline text="目标">
+            <outline text="隐藏对象的复杂创建逻辑"/>
+            <outline text="表达对象实例化的意图"/>
+          </outline>
+          <outline text="实现">
+            <outline text="简单工厂"/>
+            <outline text="工厂方法"/>
+            <outline text="抽象工厂"/>
+            <outline text="反射工厂"/>
+          </outline>
+          <outline text="好处">
+            <outline text="将领域对象的使用和创建分离"/>
+            <outline text="隐藏创建复杂领域对象的业务逻辑"/>
+            <outline text="根据调用者的需要创建相应的领域对象"/>
+            <outline text="封装聚合的内部状态"/>
+          </outline>
+        </outline>
+        <outline text="限界上下文">
+          <outline text="概念">
+            <outline text="限界">
+              <outline text="一个界限，某个具体的范围"/>
+            </outline>
+            <outline text="上下文">
+              <outline text="语境"/>
+            </outline>
+          </outline>
+          <outline text="例子">
+            <outline text="商品">
+              <outline text="在销售子域和商品子域中就是商品"/>
+              <outline text="在物流子域中特指货物，只关注部分属性"/>
+            </outline>
+          </outline>
+          <outline text="命名">
+            <outline text="领域名+上下文">
+              <outline text="eg.销售上下文, 物流上下文..."/>
+            </outline>
+          </outline>
+        </outline>
+        <outline text="应用服务&amp;领域服务">
+          <outline text="应用服务">
+            <outline text="表述应用行为">
+              <outline text="eg.购物车结算=&gt;应用行为"/>
+            </outline>
+            <outline text="隐藏领域层的复杂性及其内部实现"/>
+          </outline>
+          <outline text="领域服务">
+            <outline text="表述领域行为">
+              <outline text="eg.金额计算、支付、生成订单=&gt;领域行为"/>
+            </outline>
+          </outline>
+        </outline>
+        <outline text="领用对象模型">
+          <outline text="值对象">
+            <outline text="概念">
+              <outline text="值对象=值+对象 =&gt; 将一个值用对象的方式进行表述，表达一个具体的固定不变的概念"/>
+            </outline>
+            <outline text="值的特征">
+              <outline text="表示一个具体的概念"/>
+              <outline text="通过值的属性对其识别"/>
+              <outline text="属性判等"/>
+              <outline text="固定不变"/>
+            </outline>
+            <outline text="案例">
+              <outline text="购物网站的客户收货地址信息"/>
+            </outline>
+            <outline text="作用">
+              <outline text="符合通用语言，更简单明了的表达简单业务概念"/>
+              <outline text="简化设计，减少不必要的数据库表设计">
+                <outline text="值对象不会孤立存在，可作为所属实体的数据列"/>
+                <outline text="多个值对象序可以列化到单个列"/>
+              </outline>
+            </outline>
+            <outline text="建模">
+              <outline text="结合通用语言的表述检查其是否具有值得的含义和特征"/>
+            </outline>
+          </outline>
+          <outline text="实体">
+            <outline text="概念">
+              <outline text="实体=唯一身份标识 + 可变性【状态（属性） + 行为（方法或领域事件或领域服务）】"/>
+            </outline>
+            <outline text="特征">
+              <outline text="唯一标识">
+                <outline text="委派标识">
+                  <outline text="为了迎合ORM而创建，和领域实体标识无关系"/>
+                </outline>
+                <outline text="领域标识">
+                  <outline text="基于领域实体概念分析确定的唯一身份标识">
+                    <outline text="eg.支付宝交易流水号"/>
+                  </outline>
+                </outline>
+                <outline text="生成时机">
+                  <outline text="即时生成"/>
+                  <outline text="延迟生成"/>
+                </outline>
+              </outline>
+              <outline text="可变性">
+                <outline text="实体的状态">
+                  <outline text="eg.订单状态：未支付、正常、已发货、关闭"/>
+                </outline>
+                <outline text="实体的行为">
+                  <outline text="eg.订单行为：支付、发货、关闭"/>
+                </outline>
+              </outline>
+            </outline>
+          </outline>
+          <outline text="聚合">
+            <outline text="来源">
+              <outline text="UML类图概念，整体与部分的关系">
+                <outline text="eg.车和轮胎=&gt;可以独立存在"/>
+              </outline>
+            </outline>
+            <outline text="DDD中的概念">
+              <outline text="领域对象的显示分组">
+                <outline text="封装业务"/>
+                <outline text="保证聚合内领域对象的数据一致性"/>
+              </outline>
+            </outline>
+            <outline text="关键">
+              <outline text="领域对象间的关联关系">
+                <outline text="基于业务用例而非现实生活建立必要关联"/>
+                <outline text="减少不必要的关联"/>
+                <outline text="将双向关联转换为单项关联"/>
+              </outline>
+              <outline text="领域不变性">
+                <outline text="领域内需要关注的业务规则"/>
+              </outline>
+            </outline>
+            <outline text="难点">
+              <outline text="一致性的维护">
+                <outline text="聚合内实现事务一致性"/>
+                <outline text="聚合外实现最终一致性"/>
+              </outline>
+            </outline>
+            <outline text="设计">
+              <outline text="一个持续性的活动">
+                <outline text="无法一口吃个胖子"/>
+                <outline text="持续改进聚合的设计"/>
+              </outline>
+            </outline>
+          </outline>
+          <outline text="仓储">
+            <outline text="特性">
+              <outline text="一个聚合的集合">
+                <outline text="存储集合"/>
+                <outline text="删除集合"/>
+              </outline>
+            </outline>
+            <outline text="要点">
+              <outline text="通过聚合根来持久化和检索领域对象"/>
+              <outline text="隐藏聚合持久化和检索的底层技术实现"/>
+              <outline text="定义数据模型与领域模型的边界"/>
+            </outline>
+            <outline text="映射">
+              <outline text="ORM">
+                <outline text="仓储使用ORM持久化领域对象的状态"/>
+              </outline>
+            </outline>
+            <outline text="定义">
+              <outline text="领域模型与持久化存储之间的明确契约"/>
+            </outline>
+            <outline text="实现">
+              <outline text="泛型仓储">
+                <outline text="简化代码"/>
+                <outline text="明确意图"/>
+              </outline>
+              <outline text="事务管理">
+                <outline text="UnitOfWork (UOW)"/>
+              </outline>
+            </outline>
+          </outline>
+        </outline>
+        <outline text="通用语言">
+          <outline text="三个特点">
+            <outline text="简单易学"/>
+            <outline text="使用率高"/>
+            <outline text="国际通用"/>
+          </outline>
+          <outline text="概念">
+            <outline text="通过团队交流达成共识的能够准确传递业务规则的简单语言"/>
+          </outline>
+          <outline text="价值"/>
+        </outline>
+        <outline text="领域">
+          <outline text="本质">
+            <outline text="问题域">
+              <outline text="被界限在指定的也无需求之中"/>
+              <outline text="有清楚的范围边界"/>
+            </outline>
+          </outline>
+          <outline text="区别">
+            <outline text="与传统开发过程的区别在于DDD注重领域建模"/>
+          </outline>
+          <outline text="例子">
+            <outline text="电商网站">
+              <outline text="拆分子域：商品子域、用户子域、销售子域、订单子域..."/>
+              <outline text="核心域：销售子域"/>
+              <outline text="通用子域：日志子域"/>
+              <outline text="支撑子域：除了销售子域之外的子域，如物流子域"/>
+            </outline>
+          </outline>
+        </outline>
+        <outline text="领域模型">
+          <outline text="概念">
+            <outline text="描述正在解决的问题及提出的解决方案"/>
+          </outline>
+          <outline text="特征">
+            <outline text="综合了系统分析和设计"/>
+            <outline text="语言、模型、代码三者紧密绑定"/>
+            <outline text="可以通过UML类图来展示"/>
+          </outline>
+        </outline>
+        <outline text="领域事件">
+          <outline text="基本概念">
+            <outline text="捕获领域中发生的具有业务价值的一些事情">
+              <outline text="eg.&quot;订单支付成功&quot;=&gt;一个领域事件"/>
+            </outline>
+          </outline>
+          <outline text="建模领域事件">
+            <outline text="核心">
+              <outline text="封装不变，应对万变"/>
+            </outline>
+            <outline text="要点">
+              <outline text="事件源"/>
+              <outline text="事件处理"/>
+            </outline>
+            <outline text="实现">
+              <outline text="发布-订阅模式">
+                <outline text="事件总线 (EventBus)"/>
+              </outline>
+            </outline>
+          </outline>
+          <outline text="最终一致性">
+            <outline text="案例">
+              <outline text="订单系统发布&quot;订单成功支付&quot;事件"/>
+              <outline text="库存系统订阅并处理库存扣减逻辑"/>
+              <outline text="通知系统订阅并处理拣货通知"/>
+            </outline>
+            <outline text="实现">
+              <outline text="事件存储">
+                <outline text="事件发布可用于重新发布"/>
+                <outline text="通过消息中间件去分发事件"/>
+                <outline text="事件溯源"/>
+              </outline>
+              <outline text="事件源">
+                <outline text="用于恢复到某个状态"/>
+              </outline>
+            </outline>
+          </outline>
+        </outline>
+        <outline text="模块">
+          <outline text="抽象">
+            <outline text="对领域模型进行分解的产物，相对独立的功能单元"/>
+            <outline text="由一系列高内聚的领域对象组成"/>
+          </outline>
+          <outline text="设计">
+            <outline text="根据领域来组织模块"/>
+            <outline text="基于通用语言">
+              <outline text="模块命名规范"/>
+            </outline>
+            <outline text="高内聚低耦合">
+              <outline text="模块内高内聚"/>
+              <outline text="模块间低耦合"/>
+            </outline>
+          </outline>
+          <outline text="实现">
+            <outline text="通过命名空间进行分离"/>
+            <outline text="使用单独项目进行分离"/>
+          </outline>
+        </outline>
+      </outline>
+    </outline>
+  </body>
+</opml>
