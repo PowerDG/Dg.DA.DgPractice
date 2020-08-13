@@ -1,5 +1,31 @@
 
 
+Anaconda 几个常用命令
+
+
+
+```bash
+# 创建环境
+# 我conda版本=4.6.4 似乎新建环境默认不带py解释器，需要显式指定 python
+conda create -n 名字 [软件包=version]
+# 列出所有环境
+conda env list
+# 切换环境
+activate 名字 # linux及bash下要加 source 前缀
+# 删除环境
+conda remove -n 名字 --all
+# 导出环境
+conda env export > environment.yml
+# 导入环境
+conda env create -f environment.yml
+# 安装包
+conda install 名字[=version]
+# 查看包列表
+conda list
+# 删除包
+conda remove 名字
+```
+
 
 
 
