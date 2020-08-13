@@ -6,7 +6,28 @@
 
 ```text
 $ source ~/.bash_profile
+
 ```
+
+https://cloud.tencent.com/developer/ask/50791
+
+我用MacOS，讲讲我的解决办法。
+
+安装anaconda后，系统默认python环境是anaconda 默认创建的“root”/“base”环境，这是因为它把“启动root”写在了环境变量的用户配置文件中，就是下面这个
+
+```
+~/.bash_profile
+```
+
+只要在此文件末尾加一行就搞定
+
+```
+conda activate your_envs   # "your_envs"就是你的环境
+```
+
+至于你是用vim修改，还是用sublime直接修改，就随意了。
+
+
 
 ###  Mac常用的命令
 
